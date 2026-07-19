@@ -31,7 +31,16 @@
     },
     "plugins": [
       "expo-router",
-      "expo-sqlite"
+      "@react-native-firebase/app",
+      "@react-native-firebase/firestore",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "googleServicesFile": "./google-services.json"
+          }
+        }
+      ]
     ]
   }
 }

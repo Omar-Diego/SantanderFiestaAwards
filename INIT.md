@@ -1,50 +1,51 @@
 # 🏆 Santander Fiesta Awards — Project Manifesto
 
-> **Personal expense tracker for the Santander Fiesta Awards credit card.**
-> White & Gold — just like the card.
+> *Personal expense tracker for the Santander Fiesta Awards credit card.*
+> *Real-time sync between 2 devices · No login · White & Gold*
 
 ---
 
 ## 📋 Overview
 
-This is a **React Native (Expo)** Android app that helps you track, categorize, and analyze all expenses made with your Santander Fiesta Awards credit card. Every transaction is stored locally on-device — no accounts, no cloud sync, just your data, your control.
+A **React Native (Expo)** Android app for tracking all expenses made with your Santander Fiesta Awards credit card. **Two phones, one shared database** — when one person adds an expense, the other sees it instantly.
 
-### Core Purpose
-- Log every purchase made with the card
-- See where your money goes (categorization)
-- Understand your spending patterns (analytics)
-- Stay within your personal budget goals
+### Core Principles
+- ⚡ **Real-time sync** via Firebase Firestore
+- 🔓 **No accounts or logins** — just a shared group code
+- 📱 **Android only** — native APK distribution
+- 🎨 **White & Gold** — elegant, card-inspired design
+- 📴 **Works offline** — Firestore persistence handles spotty connectivity
 
 ---
 
 ## 🧱 Tech Stack
 
-| Layer          | Choice                          | Why |
-|:---------------|:--------------------------------|:----|
-| **Framework**  | Expo SDK 57 (React Native 0.86) | Best DX, OTA updates, prebuilt native modules |
-| **Language**   | TypeScript 6.0                  | Type safety across the entire app |
-| **Navigation** | expo-router                     | File-based routing (like Next.js), deep linking, shared layouts |
-| **Database**   | expo-sqlite v57                 | Local on-device relational DB with live queries (WAL mode) |
-| **Icons**      | @expo/vector-icons              | Thousands of icons, built-in with Expo |
-| **Charts**     | react-native-gifted-charts      | Gorgeous animated charts with Skia/SVG |
-| **Dates**      | date-fns                        | Modular, tree-shakeable date utilities |
-| **Lists**      | @shopify/flash-list             | Ultra-performant recycler lists (1000+ transactions) |
-| **Gestures**   | react-native-gesture-handler    | Native swipe-to-delete, pull-to-refresh |
-| **Animations** | react-native-reanimated         | 60fps UI animations |
+| Layer | Choice | Why |
+|:------|:-------|:----|
+| **Framework** | Expo SDK 57 (React Native 0.86) | Best DX, dev builds, prebuilt native modules |
+| **Language** | TypeScript 6.0 | Type safety across the entire app |
+| **Navigation** | expo-router | File-based routing, deep linking, shared layouts |
+| **Backend** | **Firebase Firestore** | Real-time sync, offline persistence, no server management |
+| **Security** | Firebase App Check (Play Integrity) | Blocks unauthorized API access without user login |
+| **Icons** | @expo/vector-icons | Thousands of icons, built-in with Expo |
+| **Charts** | react-native-gifted-charts | Beautiful animated charts for spending analytics |
+| **Dates** | date-fns | Modular, tree-shakeable date utilities |
+| **Lists** | @shopify/flash-list | Ultra-performant recycler lists (1000+ transactions) |
+| **Gestures** | react-native-gesture-handler | Native swipe-to-delete, pull-to-refresh |
+| **Animations** | react-native-reanimated | 60fps UI animations |
 
 ---
 
 ## 🎨 Design System — White & Gold
 
 ### Color Palette
-
-| Token         | Hex       | Usage |
-|:--------------|:----------|:------|
-| `gold`        | `#C8A84E` | Primary accent, headers, highlights |
-| `goldLight`   | `#E8D49E` | Subtle highlights, backgrounds |
-| `goldDark`    | `#A68A3E` | Pressed states, deeper accents |
-| `white`       | `#FFFFFF` | Cards, surfaces, modals |
-| `background`  | `#F5F5F0` | Warm off-white page background |
+| Token | Hex | Usage |
+|:------|:----|:------|
+| `gold` | `#C8A84E` | Primary accent, buttons, totals |
+| `goldLight` | `#E8D49E` | Subtle highlights, backgrounds |
+| `goldDark` | `#A68A3E` | Pressed states, deeper accents |
+| `background` | `#F5F5F0` | Warm off-white page background |
+| `surface` | `#FFFFFF` | Cards, surfaces, modals |
 | `textPrimary` | `#1A1A1A` | Main body text |
 | `textSecondary` | `#6B6B6B` | Subtle/helper text |
 
@@ -52,7 +53,44 @@ This is a **React Native (Expo)** Android app that helps you track, categorize, 
 - **Clean & premium** — generous whitespace, thin gold accents
 - **Card-like surfaces** — subtle shadows, rounded corners (12px default)
 - **Gold as a signal** — used sparingly for emphasis, never overwhelming
-- **Typography-driven** — clear hierarchy with system fonts
+
+---
+
+## 🗄️ Data Model (Firestore)
+
+### Collection Structure
+```
+/groups/{groupCode}/
+  ├── info: {
+  │     name: string,        // e.g. "Gastos Casa"
+  │     createdAt: Timestamp
+  │   }
+  └── transactions/
+        └── {autoId}: {
+              date: Timestamp,
+              amount: number,
+              description: string,
+              category: string,    // "food" | "transport" | ...
+              notes?: string,
+              createdAt: Timestamp,
+              deviceId: string,
+              updatedAt?: Timestamp
+            }
+```
+
+### Categories
+| Category | Icon |
+|:---------|:-----|
+| 🍔 Comida | `silverware-fork-knife` |
+| 🚗 Transporte | `car` |
+| 🛒 Supermercado | `cart` |
+| 🛍️ Shopping | `shopping` |
+| 🎬 Entretenimiento | `movie-open` |
+| 💊 Salud | `medical-bag` |
+| 💡 Servicios | `lightning-bolt` |
+| 📚 Educación | `book-open-variant` |
+| ✈️ Viajes | `airplane` |
+| 📌 Otros | `dots-horizontal` |
 
 ---
 
@@ -60,139 +98,103 @@ This is a **React Native (Expo)** Android app that helps you track, categorize, 
 
 ```
 SantanderFiestaAwards/
-├── app/                      # expo-router file-based routing
-│   ├── _layout.tsx           # Root layout (GestureHandler, SafeArea)
-│   ├── index.tsx             # Home / Dashboard
-│   ├── (tabs)/               # Tab navigator group
-│   │   ├── _layout.tsx       # Bottom tab bar (white & gold)
-│   │   ├── transactions.tsx  # Transaction history list
-│   │   ├── analytics.tsx     # Spending charts & insights
-│   │   └── settings.tsx      # App settings / export data
-│   └── transaction/
-│       └── [id].tsx          # Transaction detail screen
+├── app/                          # expo-router file-based routing
+│   ├── _layout.tsx               # Root layout (GestureHandler, SafeArea)
+│   └── index.tsx                 # Welcome / Group setup screen
 │
 ├── src/
-│   ├── components/           # Reusable UI components
-│   │   ├── TransactionItem.tsx
-│   │   ├── CategoryIcon.tsx
-│   │   ├── AmountDisplay.tsx
-│   │   ├── GoldButton.tsx
-│   │   ├── EmptyState.tsx
-│   │   └── Charts/
-│   │       ├── SpendingPieChart.tsx
-│   │       └── MonthlyBarChart.tsx
-│   ├── database/             # expo-sqlite layer
-│   │   ├── schema.ts         # Table definitions
-│   │   ├── migrations.ts     # Schema versioning
-│   │   └── repository.ts     # CRUD operations
+│   ├── components/               # Reusable UI components
+│   ├── hooks/
+│   │   └── useTransactions.ts    # Real-time Firestore subscription hook
+│   ├── services/
+│   │   ├── firebase.ts           # Firestore singleton & helpers
+│   │   ├── group.ts              # Create/join group management
+│   │   └── transactions.ts       # CRUD + real-time subscription
 │   ├── theme/
-│   │   └── index.ts          # Colors, spacing, typography, shadows
+│   │   └── index.ts              # Colors, spacing, typography, shadows
 │   ├── types/
-│   │   └── index.ts          # TypeScript interfaces
+│   │   └── index.ts              # Transaction, GroupInfo, Category
 │   └── utils/
-│       ├── format.ts         # Currency & date formatters
-│       └── categories.ts     # Category definitions & icons
+│       └── categories.ts         # Category definitions & helpers
 │
-├── assets/                   # App icons, splash screen
-├── app.json                  # Expo configuration
-├── package.json              # Dependencies & scripts
-├── tsconfig.json             # TypeScript configuration
-└── INIT.md                   # This file — project manifesto
+├── assets/                       # App icons, splash screen
+├── app.json                      # Expo config (Firebase plugins)
+├── babel.config.js               # With react-native-reanimated plugin
+├── package.json                  # Dependencies & scripts
+├── tsconfig.json                 # Strict TypeScript
+├── REQUERIMIENTOS.md             # App requirements document
+└── INIT.md                       # This file
 ```
 
 ---
 
-## 🗄️ Database Schema (expo-sqlite)
+## 🔐 Security (No Auth)
 
-```sql
--- Core table: every transaction on the card
-CREATE TABLE transactions (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  date        TEXT    NOT NULL,       -- ISO 8601: YYYY-MM-DD
-  description TEXT    NOT NULL,
-  amount      REAL    NOT NULL,       -- Positive = expense, Negative = refund
-  category    TEXT    NOT NULL,       -- e.g. 'food', 'transport', 'shopping'
-  notes       TEXT,
-  created_at  TEXT    DEFAULT (datetime('now'))
-);
+Since there's no user login, security relies on two layers:
 
--- Optional: monthly budget targets per category
-CREATE TABLE budgets (
-  id         INTEGER PRIMARY KEY AUTOINCREMENT,
-  category   TEXT    NOT NULL UNIQUE,
-  limit      REAL    NOT NULL,
-  month      TEXT    NOT NULL         -- YYYY-MM
-);
+1. **Firebase App Check (Play Integrity)** — Verifies that API calls come from your genuine Android app, blocking unauthorized scripts or apps
+2. **Shared Group Code** — A 4-letter + 4-digit code that both phones enter to access the same data
+
+### Firestore Rules
+```javascript
+// Only allow access with valid App Check token
+allow read, write: if request.app.token != null;
 ```
 
 ---
 
 ## 🚀 Getting Started
 
+### Prerequisites
+- Node.js ≥ 20
+- pnpm ≥ 9
+- Android Studio (for emulator) or physical device
+- Firebase account (free tier)
+
+### Setup
 ```bash
 # 1. Install dependencies
 pnpm install
 
-# 2. Start Expo dev server
-pnpm start
+# 2. Create a Firebase project and download google-services.json
+#    Place it in the project root
 
-# 3. Run on Android
-pnpm android
+# 3. Create development build
+npx expo run:android
 
-# 4. Or scan QR with Expo Go app
+# 4. For production APK
+npx eas build --platform android --profile production
 ```
 
-### Prerequisites
-- Node.js ≥ 20
-- pnpm ≥ 9
-- Android Studio (for emulator) or Expo Go on device
-- Java 17+ (for Android builds)
-
----
-
-## 🧪 Development Workflow
-
-```bash
-# Type-check the project
-npx tsc --noEmit
-
-# Lint
-npx expo lint
-
-# Create a production Android build
-npx eas build --platform android
-```
-
-### Git Conventions
-- `main` — production-ready
-- `feature/*` — new functionality
-- `fix/*` — bug fixes
-- Commits: [Conventional Commits](https://www.conventionalcommits.org/)
+### Two-Phone Setup
+1. Install the APK on both phones
+2. Phone 1: Create a new group → share the code
+3. Phone 2: Enter the code to join
+4. ✅ Done — both phones see the same expenses in real time
 
 ---
 
 ## 📐 Architecture Decisions
 
-### Why expo-router over @react-navigation?
-Expo Router is the standard for Expo SDK 52+. It provides file-based routing that maps directly to the `app/` directory — no manual navigation configuration needed. It also handles deep linking and shared layouts natively.
-
-### Why expo-sqlite over WatermelonDB?
-For a personal expense tracker (typically < 5,000 transactions), expo-sqlite v14+ with WAL mode and live queries is more than capable. WatermelonDB's lazy-loading architecture is overkill for this dataset size.
-
-### Why date-fns over dayjs or luxon?
-date-fns is the most modular option — you only import what you use, keeping bundle size minimal. It has the most comprehensive date utility set for this use case (formatting, grouping by month, comparing dates).
+| Decision | Choice | Why |
+|:---------|:-------|:----|
+| **Backend** | Firebase Firestore | Real-time sync + offline persistence + no server management |
+| **Auth** | None (group code) | Simple for 2 people, no account creation friction |
+| **Security** | App Check (Play Integrity) | Blocks unauthorized API access without login complexity |
+| **Offline** | Firestore persistence | Automatic sync when connection is restored |
+| **Build** | EAS Build | APK distribution without Play Store (if desired) |
+| **Routing** | expo-router | File-based routing, clean project structure |
 
 ---
 
 ## 🔮 Future Enhancements
 
-- [ ] CSV export of transaction data
-- [ ] Monthly spending reports as PDF
-- [ ] Recurring transaction detection
-- [ ] Push notifications for budget alerts
+- [ ] Edit & delete transactions
+- [ ] Monthly spending charts (react-native-gifted-charts)
+- [ ] Budget goals per category
+- [ ] CSV export
 - [ ] Dark mode (inverted white & gold)
-- [ ] Biometric lock for app access
 
 ---
 
-*Built with ❤️ using Expo, TypeScript, and a whole lot of café con leche.*
+*Built with ❤️ using Expo, Firebase, and TypeScript*

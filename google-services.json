@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "917248822579",
+    "project_id": "santander-fiesta-awards",
+    "storage_bucket": "santander-fiesta-awards.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:917248822579:android:bb5f12736e89dcf229c246",
+        "android_client_info": {
+          "package_name": "com.santander.fiestaawards"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDj4SJypecAZ0GF5qMknym6pAhbt64q9bo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,33 @@
+{
+  "name": "santanderfiestaawards",
+  "version": "1.0.0",
+  "main": "expo-router/entry",
+  "dependencies": {
+    "@shopify/flash-list": "^2.3.2",
+    "date-fns": "^4.4.0",
+    "expo": "~57.0.7",
+    "expo-constants": "^57.0.6",
+    "expo-linking": "^57.0.3",
+    "expo-router": "^57.0.7",
+    "expo-sqlite": "^57.0.1",
+    "expo-status-bar": "~57.0.1",
+    "react": "19.2.3",
+    "react-native": "0.86.0",
+    "react-native-gesture-handler": "^3.1.0",
+    "react-native-gifted-charts": "^1.4.77",
+    "react-native-reanimated": "^4.5.2",
+    "react-native-safe-area-context": "^5.8.0",
+    "react-native-svg": "^15.15.5"
+  },
+  "devDependencies": {
+    "@types/react": "~19.2.2",
+    "typescript": "~6.0.3"
+  },
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  },
+  "private": true
+}

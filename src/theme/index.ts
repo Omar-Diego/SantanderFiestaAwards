@@ -5,6 +5,8 @@
  * All visual constants should be imported from here for consistency.
  */
 
+import { StyleSheet } from 'react-native';
+
 export const colors = {
   // Core brand
   white: '#FFFFFF',
@@ -124,3 +126,15 @@ export const shadows = {
     elevation: 8,
   },
 } as const;
+
+/** Shared list styles for date-grouped transaction lists (Home, Actividad, Crédito) */
+export const sharedStyles = StyleSheet.create({
+  dayHeader: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
+  },
+});

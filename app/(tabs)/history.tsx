@@ -390,15 +390,11 @@ const styles = StyleSheet.create({
     color: darkColors.textPrimary,
   },
 
-  // Summary card
+  // Summary (sin fondo de card — directo sobre el fondo de la app)
   summaryCard: {
     alignItems: 'center',
     marginHorizontal: spacing.xl,
     marginBottom: spacing.md,
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
     paddingVertical: spacing.xl,
   },
   summaryLabel: {

@@ -27,7 +27,8 @@
 - **Tipografía moderna sans-serif** con alto contraste
 - **Acentos:** rojo brillante (marca Santander) + verde brillante (dinero disponible)
 - **Superficies:** gris muy oscuro `#1C1C1E` con **borde sutil** `rgba(255,255,255,0.08)` en cards
-- **Íconos de comercio:** círculos de color (inicial del comercio, color determinista por descripción)
+- **Íconos de comercio:** DiceBear (`@dicebear/adventurer`, offline) — avatar ilustrado único por gasto (seed = id del gasto) sobre el círculo de color determinista del comercio (`merchantColor`)
+- **Card de Actividad:** borde derecho rojo de 3px indicando que se desliza para eliminar; el botón Eliminar del swipe tiene el mismo alto que la card
 - **Acciones rápidas circulares** con label debajo (patrón Revolut)
 - Esquinas muy redondeadas (píldoras y tarjetas de ~16px)
 
@@ -89,18 +90,21 @@ Estructura vertical de la pantalla principal:
 - Detrás del balance: **glow ambiental** (gradientes radiales rojo/morado de baja opacidad)
 
 ### 4.3 Acciones Rápidas (Quick Actions)
-- Fila de **4 botones circulares** `#1C1C1E` (borde sutil), icono + label debajo:
-  **Registrar (+)** · **Historial (lista)** · **Presupuesto (gráfica)** · **Alertas (campana)**
+- Fila de **2 botones circulares** `#1C1C1E` (borde sutil), icono + label debajo:
+  **Registrar (+)** · **Presupuesto (gráfica → `/settings`, resumen)** · **Crédito (tarjeta → `/settings?edit=1`, abre directo el formulario)**
+- ~~Historial, Alertas y Configuración~~ — **eliminados** del Home (Historial/Alertas siguen en la nav flotante; el crédito se abre desde aquí)
 
-### 4.4 Tarjeta Período (Próximo)
-- **Va ANTES de Actividad** (orden del Home: Balance → Acciones rápidas → **PERÍODO** → **ACTIVIDAD**)
-- Card con **"PERÍODO"** + rango del período (ej. "19 jul – 18 ago")
-- Pill a la derecha: **"Corte el 01/09"** (día de corte del presupuesto) · "Define presupuesto" si aún no hay meta
+### 4.4 Tarjeta Disponible Semanal (reemplaza a PERÍODO)
+- **Va ANTES de Actividad** (orden del Home: Balance → Acciones rápidas → **DISPONIBLE ESTA SEMANA** → **ACTIVIDAD**)
+- Card con **"DISPONIBLE ESTA SEMANA"** + monto grande en verde/rojo según el disponible semanal
+- **Cálculo con rollover:** el período se divide en semanas (`budget / semanas`); lo no gastado se acumula para las siguientes semanas → si gastas menos una semana, la siguiente tienes más
+- Subtítulo: "Semana {n} de {m} · {X} por semana"
+- Pill a la derecha: "Define presupuesto" si aún no hay meta · sin pill si ya hay presupuesto
 
 ### 4.5 Sección Actividad (sin fondo)
 - **SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil), igual que en Actividad y Crédito
 - Agrupada por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `groupTransactionsByDay`)
-- Cada gasto: **círculo de color del comercio** (inicial) + descripción bold + monto `-$X` a la derecha
+- Cada gasto: **avatar DiceBear único** (seed = id del gasto) en círculo de color del comercio + descripción bold + monto `-$X` a la derecha; borde derecho rojo = deslizable para eliminar
 - **"Ver todo"** centrado abajo (rojo) → Actividad
 - Estado vacío (unificado): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
 
@@ -110,9 +114,9 @@ Estructura vertical de la pantalla principal:
   | Pestaña | Ícono | Estado |
   |:--------|:------|:-------|
   | **Inicio** | Casa (rellena cuando está activa) | Activa: **cápsula gris más claro** `#2C2C2E` alrededor de icono + texto, todo en blanco |
-  | **Crédito** | Gráfica con flecha arriba | Inactiva: gris |
   | **Actividad** | Lista con viñetas | Inactiva: gris |
   | **Alertas** | Campana | Inactiva: gris |
+- ~~Configuración~~ — **eliminada** de la barra: el presupuesto/crédito se abre desde las acciones rápidas del Home (ruta oculta)
 - ~~Botón flotante "+" rojo~~ — **eliminado**: registrar gasto se hace desde la acción rápida **Registrar** del Home (o navegando a `/add`)
 
 ---
@@ -128,16 +132,18 @@ Todas las pestañas comparten la identidad del Home:
 - **Una acción esencial por pantalla** (protagonismo en rojo Santander, siempre estilo outline):
   | Pantalla | Acción esencial |
   |:---------|:----------------|
-  | Inicio | Acciones rápidas circulares (Registrar, Historial, Presupuesto, Alertas) |
-  | Actividad | Botón **Registrar gasto** (outline, ancho completo) bajo el resumen del mes |
-  | Crédito | Botón **Editar presupuesto** (outline) bajo la tarjeta resumen / **GUARDAR PRESUPUESTO** (outline) en el formulario |
+  | Inicio | Acciones rápidas circulares (Registrar, Presupuesto→resumen, Crédito→edición) + tarjeta **Disponible semanal** |
+  | Actividad | Lista de gastos del mes (filtro de mes, sin botón registrar) |
+  | Crédito (oculto) | Botón **Editar presupuesto** (outline) bajo la tarjeta resumen / **GUARDAR PRESUPUESTO** (outline) en el formulario |
   | Alertas | CTA **Ir a Crédito / Ver presupuesto** (botón outline dentro de la tarjeta de alerta) |
-  | Nuevo gasto | Botón **REGISTRAR GASTO** (outline, ancho completo) |
-- **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "TE QUEDA"; Alertas: "DISPONIBLE EN EL PERÍODO")
+  | Nuevo gasto | Botón **REGISTRAR GASTO** (outline, ancho completo) — solo desde Inicio |
+- **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "DISPONIBLE"; Alertas: "DISPONIBLE EN EL PERÍODO")
 - Formulario de **Crédito**: **sin card** — directo sobre el fondo de la app; teclado numérico puro (solo dígitos, sin símbolos +/−)
 - Formulario de **Nuevo gasto**: **sin card** — directo sobre el fondo de la app, igual que Crédito (solo los inputs conservan su fondo `surfaceElevated`)
-- **Lista de gastos en Actividad y Crédito: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil) con el avatar de comercio (`MerchantAvatar`), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `getDayLabel` en `src/utils/date.ts`)
-- **Estados vacíos unificados** (Inicio, Actividad y Crédito): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
+- **Lista de gastos en Actividad y Home: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil) con el avatar de comercio (`MerchantAvatar`), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `getDayLabel` en `src/utils/date.ts`)
+- **Estados vacíos unificados** (Inicio y Actividad): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
+- **Disponible semanal (Home):** el período se divide en semanas; el disponible de la semana acumula lo no gastado de las anteriores (rollover). Lógica en `useBudget` (`weeksInPeriod`, `currentWeek`, `weeklyAllowance`, `weeklyAvailable`)
+- **Formulario de Nuevo gasto:** label **MONTO centrado**
 
 ---
 
@@ -145,11 +151,11 @@ Todas las pestañas comparten la identidad del Home:
 
 | Diseño nuevo | Pantalla actual | Notas |
 |:-------------|:----------------|:------|
-| **Inicio** | Dashboard (`dashboard.tsx`) | Balance → "Spent this month"; widgets → presupuesto/restante |
-| **Crédito** | Presupuesto (`budget.tsx`) | Reinterpreta "límite de crédito" → presupuesto del grupo |
-| **Actividad** | Historial (`history.tsx`) | Lista de gastos con "Ver todo" |
+| **Inicio** | Dashboard (`dashboard.tsx`) | Balance + Disponible semanal + últimos 5 gastos |
+| **Actividad** | Historial (`history.tsx`) | Todos los gastos con filtro de mes |
 | **Alertas** | `alerts.tsx` | Alertas de presupuesto (excedido / cerca del límite / sin presupuesto) |
-| *(sin mapeo)* | Registrar gasto (`add.tsx`) | Se mantiene como botón de acción central o modal |
+| **Crédito** | `settings.tsx` (oculto, `href: null`) | Presupuesto del grupo: resumen + editar + formulario, se abre desde Inicio |
+| *(sin mapeo)* | Registrar gasto (`add.tsx`) | Pestaña oculta, se abre desde Inicio |
 
 > ⚠️ **Pendiente de definir:** cómo entra la pantalla de **Registrar gasto** en la nav flotante de 4 pestañas (¿botón central?, ¿desde Home?), y qué pasa con la pantalla de **grupo/código** (`index.tsx`).
 

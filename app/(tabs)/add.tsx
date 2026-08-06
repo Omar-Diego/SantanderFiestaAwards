@@ -154,7 +154,9 @@ export default function AddTransactionScreen() {
 
           {/* ── Amount ────────────────────────────── */}
           <View style={styles.section}>
-            <Text style={styles.sectionLabel}>MONTO</Text>
+            <Text style={[styles.sectionLabel, styles.sectionLabelCenter]}>
+              MONTO
+            </Text>
             <View style={styles.amountRow}>
               <Text style={styles.currencySymbol}>$</Text>
               <TextInput
@@ -318,6 +320,9 @@ const styles = StyleSheet.create({
     color: darkColors.textSecondary,
     letterSpacing: 1.5,
     marginBottom: spacing.md,
+  },
+  sectionLabelCenter: {
+    textAlign: 'center',
   },
   amountRow: {
     flexDirection: 'row',

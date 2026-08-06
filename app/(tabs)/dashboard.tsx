@@ -94,7 +94,7 @@ export default function DashboardScreen() {
   );
 
   const recentTransactions = useMemo(
-    () => getRecentTransactions(5),
+    () => getRecentTransactions(3),
     [getRecentTransactions]
   );
 

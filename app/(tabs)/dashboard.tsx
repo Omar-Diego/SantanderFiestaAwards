@@ -16,11 +16,10 @@ import AmbientGlow from '../../src/components/AmbientGlow';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
-import { getPeriodLabel } from '../../src/utils/date';
+import { getPeriodLabel, groupTransactionsByDay } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
-import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
 import type { Transaction } from '../../src/types';
 
 // ─── Currency formatter ─────────────────────────────────
@@ -32,10 +31,6 @@ const fmt = new Intl.NumberFormat('es-MX', {
 
 function formatCurrency(amount: number): string {
   return fmt.format(amount);
-}
-
-function formatDate(date: Date): string {
-  return format(date, 'd MMM', { locale: es });
 }
 
 /** Payment due date: cutoff day of the current month, e.g. "01/09" */
@@ -108,6 +103,12 @@ export default function DashboardScreen() {
   const recentTransactions = useMemo(
     () => getRecentTransactions(5),
     [getRecentTransactions]
+  );
+
+  // Recent activity grouped by day (own card per expense)
+  const activityItems = useMemo(
+    () => groupTransactionsByDay(recentTransactions),
+    [recentTransactions]
   );
 
   // ─── Loading state ──────────────────────────────────
@@ -208,39 +209,6 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* ── Recent activity ───────────────────────── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>ACTIVIDAD</Text>
-          <View style={styles.activityCard}>
-            {recentTransactions.length > 0 ? (
-              <>
-                {recentTransactions.map((tx) => (
-                  <TransactionRow key={tx.id} transaction={tx} />
-                ))}
-                <TouchableOpacity
-                  style={styles.seeAll}
-                  onPress={() => router.push('/history')}
-                  activeOpacity={0.7}
-                >
-                  <Text style={styles.seeAllText}>Ver todo</Text>
-                </TouchableOpacity>
-              </>
-            ) : (
-              <View style={styles.emptyState}>
-                <MaterialCommunityIcons
-                  name="receipt-outline"
-                  size={44}
-                  color={darkColors.textMuted}
-                />
-                <Text style={styles.emptyText}>Sin gastos</Text>
-                <Text style={styles.emptySubtitle}>
-                  Aún no hay gastos registrados
-                </Text>
-              </View>
-            )}
-          </View>
-        </View>
-
         {/* ── Period (Próximo) ──────────────────────── */}
         <View style={styles.section}>
           <TouchableOpacity
@@ -266,6 +234,43 @@ export default function DashboardScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ── Recent activity (own card per expense) ── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ACTIVIDAD</Text>
+          {activityItems.length > 0 ? (
+            <>
+              {activityItems.map((item) =>
+                item.kind === 'header' ? (
+                  <Text key={item.key} style={sharedStyles.dayHeader}>
+                    {item.label}
+                  </Text>
+                ) : (
+                  <TransactionCard key={item.key} transaction={item.transaction} />
+                )
+              )}
+              <TouchableOpacity
+                style={styles.seeAll}
+                onPress={() => router.push('/history')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.seeAllText}>Ver todo</Text>
+              </TouchableOpacity>
+            </>
+          ) : (
+            <View style={styles.emptyState}>
+              <MaterialCommunityIcons
+                name="receipt-outline"
+                size={44}
+                color={darkColors.textMuted}
+              />
+              <Text style={styles.emptyText}>Sin gastos</Text>
+              <Text style={styles.emptySubtitle}>
+                Aún no hay gastos registrados
+              </Text>
+            </View>
+          )}
+        </View>
+
         {/* Bottom spacing for floating nav */}
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -273,16 +278,15 @@ export default function DashboardScreen() {
   );
 }
 
-// ─── Transaction Row (Revolut-style colored initials) ───
-function TransactionRow({ transaction }: { transaction: Transaction }) {
+// ─── Transaction Card (own card per expense) ───────────
+function TransactionCard({ transaction }: { transaction: Transaction }) {
   return (
-    <View style={txStyles.row}>
+    <View style={txStyles.card}>
       <MerchantAvatar description={transaction.description} />
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
           {transaction.description}
         </Text>
-        <Text style={txStyles.date}>{formatDate(transaction.date)}</Text>
       </View>
       <Text style={txStyles.amount}>-{formatCurrency(transaction.amount)}</Text>
     </View>
@@ -290,13 +294,16 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
 }
 
 const txStyles = StyleSheet.create({
-  row: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: darkColors.divider,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    padding: spacing.lg,
     gap: spacing.md,
+    marginBottom: spacing.sm,
   },
   info: {
     flex: 1,
@@ -305,11 +312,6 @@ const txStyles = StyleSheet.create({
     ...typography.body,
     color: darkColors.textPrimary,
     fontWeight: '600',
-  },
-  date: {
-    ...typography.small,
-    color: darkColors.textMuted,
-    marginTop: 2,
   },
   amount: {
     ...typography.bodyBold,
@@ -415,14 +417,6 @@ const styles = StyleSheet.create({
     color: darkColors.textSecondary,
     letterSpacing: 1.2,
     marginBottom: spacing.md,
-  },
-  activityCard: {
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    paddingHorizontal: spacing.lg,
-    paddingTop: spacing.xs,
   },
   seeAll: {
     alignItems: 'center',

@@ -1,5 +1,6 @@
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
+import type { Transaction } from '../types';
 
 /** Current month label, capitalized in Spanish (e.g. "Julio 2026") */
 export function getCurrentMonthLabel(): string {
@@ -55,7 +56,7 @@ export function getPeriodLabel(range: PeriodRange): string {
   return `${startLabel} – ${endLabel}`;
 }
 
-/** Friendly day header (shared by Actividad and Crédito): "Hoy" / "Ayer" / "Lunes 12 de agosto" */
+/** Friendly day header (shared by Actividad, Crédito and Home): "Hoy" / "Ayer" / "Lunes 12 de agosto" */
 export function getDayLabel(date: Date): string {
   const now = new Date();
   const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -65,4 +66,25 @@ export function getDayLabel(date: Date): string {
   if (diffDays === 1) return 'Ayer';
   const label = format(date, 'EEEE d MMMM', { locale: es });
   return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+/** Flat list items for a date-grouped transaction list */
+export type DayGroupItem =
+  | { kind: 'header'; key: string; label: string }
+  | { kind: 'tx'; key: string; transaction: Transaction };
+
+/** Group transactions by day (newest first) with friendly date headers */
+export function groupTransactionsByDay(transactions: Transaction[]): DayGroupItem[] {
+  const sorted = [...transactions].sort((a, b) => b.date.getTime() - a.date.getTime());
+  const items: DayGroupItem[] = [];
+  let lastDayKey = '';
+  for (const tx of sorted) {
+    const dayKey = format(tx.date, 'yyyy-MM-dd');
+    if (dayKey !== lastDayKey) {
+      items.push({ kind: 'header', key: `h-${dayKey}`, label: getDayLabel(tx.date) });
+      lastDayKey = dayKey;
+    }
+    items.push({ kind: 'tx', key: tx.id, transaction: tx });
+  }
+  return items;
 }

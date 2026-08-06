@@ -14,14 +14,13 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { router } from 'expo-router';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
-import { getDayLabel } from '../../src/utils/date';
+import { groupTransactionsByDay, type DayGroupItem } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
 import { deleteTransaction } from '../../src/services/transactions';
-import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
-import { format } from 'date-fns';
+import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
 import type { Transaction } from '../../src/types';
 
 // ─── Currency formatter ─────────────────────────────────
@@ -39,11 +38,6 @@ const MONTHS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-
-// Flat list items: date headers + transaction cards
-type ListItem =
-  | { kind: 'header'; key: string; label: string }
-  | { kind: 'tx'; key: string; transaction: Transaction };
 
 // ─── History Screen (Actividad) ──────────────────────────
 export default function HistoryScreen() {
@@ -87,22 +81,10 @@ export default function HistoryScreen() {
   );
 
   // ─── Grouped list (by day, newest first) ────────────
-  const groupedItems = useMemo<ListItem[]>(() => {
-    const sorted = [...filteredTransactions].sort(
-      (a, b) => b.date.getTime() - a.date.getTime()
-    );
-    const items: ListItem[] = [];
-    let lastDayKey = '';
-    for (const tx of sorted) {
-      const dayKey = format(tx.date, 'yyyy-MM-dd');
-      if (dayKey !== lastDayKey) {
-        items.push({ kind: 'header', key: `h-${dayKey}`, label: getDayLabel(tx.date) });
-        lastDayKey = dayKey;
-      }
-      items.push({ kind: 'tx', key: tx.id, transaction: tx });
-    }
-    return items;
-  }, [filteredTransactions]);
+  const groupedItems = useMemo(
+    () => groupTransactionsByDay(filteredTransactions),
+    [filteredTransactions]
+  );
 
   // ─── Month navigation ───────────────────────────────
   function changeMonth(delta: number) {
@@ -151,9 +133,9 @@ export default function HistoryScreen() {
 
   // ─── Render grouped item ─────────────────────────────
   const renderItem = useCallback(
-    ({ item }: { item: ListItem }) => {
+    ({ item }: { item: DayGroupItem }) => {
       if (item.kind === 'header') {
-        return <Text style={styles.dayHeader}>{item.label}</Text>;
+        return <Text style={sharedStyles.dayHeader}>{item.label}</Text>;
       }
       return (
         <SwipeableRow
@@ -235,7 +217,7 @@ export default function HistoryScreen() {
       {groupedItems.length > 0 ? (
         <FlashList
           data={groupedItems}
-          keyExtractor={(item: ListItem) => item.key}
+          keyExtractor={(item: DayGroupItem) => item.key}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
@@ -451,15 +433,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: 48,
   },
-  dayHeader: {
-    ...typography.label,
-    color: darkColors.textSecondary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-
   // Empty
   emptyState: {
     flex: 1,

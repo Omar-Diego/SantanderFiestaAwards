@@ -20,9 +20,8 @@ import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
-import { getDayLabel, getPeriodLabel } from '../../src/utils/date';
-import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
-import { format } from 'date-fns';
+import { getPeriodLabel, groupTransactionsByDay } from '../../src/utils/date';
+import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
 import type { Transaction } from '../../src/types';
 
 // ─── Currency formatter ─────────────────────────────────
@@ -124,30 +123,10 @@ export default function BudgetScreen() {
   const isOverBudget = remaining < 0;
 
   // ─── Period transactions grouped by day (Actividad style) ──
-  const groupedPeriod = useMemo<
-    (
-      | { kind: 'header'; key: string; label: string }
-      | { kind: 'tx'; key: string; transaction: Transaction }
-    )[]
-  >(() => {
-    const sorted = [...periodTransactions].sort(
-      (a, b) => b.date.getTime() - a.date.getTime()
-    );
-    const items: (
-      | { kind: 'header'; key: string; label: string }
-      | { kind: 'tx'; key: string; transaction: Transaction }
-    )[] = [];
-    let lastDayKey = '';
-    for (const tx of sorted) {
-      const dayKey = format(tx.date, 'yyyy-MM-dd');
-      if (dayKey !== lastDayKey) {
-        items.push({ kind: 'header', key: `h-${dayKey}`, label: getDayLabel(tx.date) });
-        lastDayKey = dayKey;
-      }
-      items.push({ kind: 'tx', key: tx.id, transaction: tx });
-    }
-    return items;
-  }, [periodTransactions]);
+  const groupedPeriod = useMemo(
+    () => groupTransactionsByDay(periodTransactions),
+    [periodTransactions]
+  );
 
   // ─── Loading state ──────────────────────────────────
   if (loading) {
@@ -381,7 +360,7 @@ export default function BudgetScreen() {
             <Text style={styles.sectionTitle}>Gastos de este período</Text>
             {groupedPeriod.map((item) =>
               item.kind === 'header' ? (
-                <Text key={item.key} style={styles.dayHeader}>
+                <Text key={item.key} style={sharedStyles.dayHeader}>
                   {item.label}
                 </Text>
               ) : (
@@ -568,15 +547,6 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: spacing.md,
   },
-  dayHeader: {
-    ...typography.label,
-    color: darkColors.textSecondary,
-    letterSpacing: 1,
-    textTransform: 'uppercase',
-    marginTop: spacing.md,
-    marginBottom: spacing.sm,
-  },
-
   // Empty State
   emptyState: {
     alignItems: 'center',

@@ -92,15 +92,17 @@ Estructura vertical de la pantalla principal:
 - Fila de **4 botones circulares** `#1C1C1E` (borde sutil), icono + label debajo:
   **Registrar (+)** · **Historial (lista)** · **Presupuesto (gráfica)** · **Alertas (campana)**
 
-### 4.4 Tarjeta de Actividad
-- Card `#1C1C1E` con **borde sutil** `rgba(255,255,255,0.08)`, radio 16px
-- Cada gasto: **círculo de color del comercio** (color determinista por descripción) con la **inicial** en blanco · descripción bold + fecha gris · monto blanco a la derecha
-- **"Ver todo"** centrado abajo (rojo) → Actividad
-- Estado vacío: icono receipt gris + **"No hay gastos este mes"**
-
-### 4.5 Tarjeta Período (Próximo)
+### 4.4 Tarjeta Período (Próximo)
+- **Va ANTES de Actividad** (orden del Home: Balance → Acciones rápidas → **PERÍODO** → **ACTIVIDAD**)
 - Card con **"PERÍODO"** + rango del período (ej. "19 jul – 18 ago")
 - Pill a la derecha: **"Corte el 01/09"** (día de corte del presupuesto) · "Define presupuesto" si aún no hay meta
+
+### 4.5 Sección Actividad (sin fondo)
+- **SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil), igual que en Actividad y Crédito
+- Agrupada por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `groupTransactionsByDay`)
+- Cada gasto: **círculo de color del comercio** (inicial) + descripción bold + monto `-$X` a la derecha
+- **"Ver todo"** centrado abajo (rojo) → Actividad
+- Estado vacío (unificado): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
 
 ### 4.6 Barra de Navegación Inferior (Floating Pill Nav)
 - Contenedor **flotante tipo píldora** (extremos totalmente redondeados) `#1C1C1E`, con margen lateral y sombra

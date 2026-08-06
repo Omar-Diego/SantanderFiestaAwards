@@ -11,11 +11,15 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import { router } from 'expo-router';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
+import AmbientGlow from '../../src/components/AmbientGlow';
+import TabHeader from '../../src/components/TabHeader';
+import PrimaryButton from '../../src/components/PrimaryButton';
 import { deleteTransaction } from '../../src/services/transactions';
-import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../../src/types';
@@ -36,7 +40,7 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
-// ─── History Screen (Activity) ──────────────────────────
+// ─── History Screen (Actividad) ──────────────────────────
 export default function HistoryScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
@@ -147,75 +151,84 @@ export default function HistoryScreen() {
     );
   }
 
+  const monthLabel = `${MONTHS[filterMonth]} ${filterYear}`;
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* ── Header ──────────────────────────── */}
+      {/* ── Ambient glow ──────────────────────────── */}
+      <AmbientGlow height={280} intensity={0.8} />
+
+      {/* ── Header ─────────────────────────────────── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Actividad</Text>
+        <TabHeader title="Actividad" />
       </View>
 
-      {/* ── Month Filter ─────────────────────── */}
+      {/* ── Month Filter ───────────────────────────── */}
       <View style={styles.monthFilter}>
         <TouchableOpacity
           style={styles.monthArrow}
           onPress={() => changeMonth(-1)}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name="chevron-left"
-            size={22}
-            color={darkColors.red}
-          />
+          <MaterialCommunityIcons name="chevron-left" size={22} color={darkColors.red} />
         </TouchableOpacity>
         <View style={styles.monthCenter}>
-          <Text style={styles.monthText}>
-            {MONTHS[filterMonth]} {filterYear}
-          </Text>
+          <Text style={styles.monthText}>{monthLabel}</Text>
         </View>
         <TouchableOpacity
           style={styles.monthArrow}
           onPress={() => changeMonth(1)}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons
-            name="chevron-right"
-            size={22}
-            color={darkColors.red}
-          />
+          <MaterialCommunityIcons name="chevron-right" size={22} color={darkColors.red} />
         </TouchableOpacity>
       </View>
 
-      {/* ── Summary Bar ──────────────────────── */}
-      <View style={styles.summaryBar}>
+      {/* ── Month summary card ─────────────────────── */}
+      <View style={styles.summaryCard}>
         <Text style={styles.summaryLabel}>
+          GASTADO EN {MONTHS[filterMonth].toUpperCase()}
+        </Text>
+        <Text style={styles.summaryAmount}>{formatCurrency(monthTotal)}</Text>
+        <Text style={styles.summaryMeta}>
           {filteredTransactions.length}{' '}
           {filteredTransactions.length === 1 ? 'gasto' : 'gastos'}
         </Text>
-        <Text style={styles.summaryTotal}>{formatCurrency(monthTotal)}</Text>
       </View>
 
-      {/* ── Transaction List ──────────────────── */}
-      {filteredTransactions.length > 0 ? (
-        <FlashList
-          data={filteredTransactions}
-          keyExtractor={(item: Transaction) => item.id}
-          renderItem={renderItem}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
+      {/* ── Essential action: registrar gasto ──────── */}
+      <View style={styles.ctaWrap}>
+        <PrimaryButton
+          title="Registrar gasto"
+          icon="plus"
+          onPress={() => router.push('/add')}
         />
-      ) : (
-        <View style={styles.emptyState}>
-          <MaterialCommunityIcons
-            name="receipt-outline"
-            size={48}
-            color={darkColors.textMuted}
+      </View>
+
+      {/* ── Transaction list (card) ────────────────── */}
+      <View style={styles.listCard}>
+        {filteredTransactions.length > 0 ? (
+          <FlashList
+            data={filteredTransactions}
+            keyExtractor={(item: Transaction) => item.id}
+            renderItem={renderItem}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
           />
-          <Text style={styles.emptyTitle}>Sin gastos</Text>
-          <Text style={styles.emptySubtitle}>
-            No hay gastos registrados este mes
-          </Text>
-        </View>
-      )}
+        ) : (
+          <View style={styles.emptyState}>
+            <MaterialCommunityIcons
+              name="receipt-outline"
+              size={48}
+              color={darkColors.textMuted}
+            />
+            <Text style={styles.emptyTitle}>Sin gastos</Text>
+            <Text style={styles.emptySubtitle}>
+              No hay gastos registrados este mes
+            </Text>
+          </View>
+        )}
+      </View>
     </SafeAreaView>
   );
 }
@@ -286,7 +299,7 @@ const swipeStyles = StyleSheet.create({
     width: 84,
     borderRadius: borderRadius.md,
     marginVertical: spacing.sm,
-    marginRight: spacing.xxl,
+    marginRight: spacing.sm,
   },
   actionInner: {
     alignItems: 'center',
@@ -308,9 +321,10 @@ const txStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xl,
-    backgroundColor: darkColors.background,
+    paddingHorizontal: spacing.lg,
     gap: spacing.md,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: darkColors.divider,
   },
   info: {
     flex: 1,
@@ -318,6 +332,7 @@ const txStyles = StyleSheet.create({
   description: {
     ...typography.body,
     color: darkColors.textPrimary,
+    fontWeight: '600',
   },
   date: {
     marginTop: 2,
@@ -346,11 +361,7 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.h1,
-    color: darkColors.textPrimary,
+    paddingBottom: spacing.md,
   },
 
   // Month Filter
@@ -363,7 +374,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: darkColors.borderSubtle,
     marginBottom: spacing.md,
-    ...shadows.sm,
   },
   monthArrow: {
     paddingHorizontal: spacing.xl,
@@ -378,26 +388,54 @@ const styles = StyleSheet.create({
     color: darkColors.textPrimary,
   },
 
-  // Summary Bar
-  summaryBar: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  // Summary card
+  summaryCard: {
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingBottom: spacing.md,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    paddingVertical: spacing.xl,
   },
   summaryLabel: {
-    ...typography.caption,
+    ...typography.label,
     color: darkColors.textSecondary,
+    letterSpacing: 1.2,
   },
-  summaryTotal: {
-    ...typography.bodyBold,
+  summaryAmount: {
+    fontSize: 36,
+    fontWeight: '700',
     color: darkColors.textPrimary,
+    letterSpacing: -0.5,
+    marginTop: spacing.sm,
+  },
+  summaryMeta: {
+    ...typography.small,
+    color: darkColors.textMuted,
+    marginTop: spacing.xs,
   },
 
-  // List
+  // Essential CTA
+  ctaWrap: {
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+  },
+
+  // List card
+  listCard: {
+    flex: 1,
+    marginHorizontal: spacing.xl,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    overflow: 'hidden',
+    marginBottom: 56,
+  },
   listContent: {
-    paddingBottom: 160,
+    paddingBottom: spacing.md,
   },
 
   // Empty
@@ -406,6 +444,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xxl,
+    paddingVertical: spacing.huge,
     gap: spacing.sm,
   },
   emptyTitle: {

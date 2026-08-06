@@ -5,7 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Pressable,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -14,7 +13,10 @@ import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
 import { getPeriodLabel } from '../../src/utils/date';
-import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import AmbientGlow from '../../src/components/AmbientGlow';
+import TabHeader from '../../src/components/TabHeader';
+import PrimaryButton from '../../src/components/PrimaryButton';
+import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 
 // ─── Currency formatter ─────────────────────────────────
 const fmt = new Intl.NumberFormat('es-MX', {
@@ -100,7 +102,6 @@ export default function AlertsScreen() {
     config && config.amount > 0 ? Math.min(1, Math.max(0, spent / config.amount)) : 0;
   const isOver = config !== null && remaining < 0;
   const nearLimit = config !== null && !isOver && progress >= 0.8;
-  const tone: AlertTone = isOver ? 'red' : 'green';
 
   // Summary card values (handles the no-budget case)
   const summaryTone = !config ? null : isOver ? 'red' : 'green';
@@ -124,7 +125,7 @@ export default function AlertsScreen() {
       icon: 'alert-circle-outline',
       tone: 'warning',
       title: 'Sin presupuesto definido',
-      body: 'Ve a Crédito y define una meta de gasto para recibir alertas.',
+      body: 'Define una meta de gasto para recibir alertas automáticas.',
       actionLabel: 'Ir a Crédito',
       actionRoute: '/budget',
     });
@@ -135,6 +136,8 @@ export default function AlertsScreen() {
       tone: 'red',
       title: 'Presupuesto excedido',
       body: `Te pasaste por ${formatCurrency(Math.abs(remaining))} de tu meta de ${formatCurrency(config.amount)}.`,
+      actionLabel: 'Ver presupuesto',
+      actionRoute: '/budget',
     });
   } else if (nearLimit) {
     alerts.push({
@@ -143,6 +146,8 @@ export default function AlertsScreen() {
       tone: 'warning',
       title: 'Cerca del límite',
       body: `Ya gastaste el ${Math.round(progress * 100)}% de tu presupuesto (${formatCurrency(spent)} de ${formatCurrency(config.amount)}).`,
+      actionLabel: 'Ver presupuesto',
+      actionRoute: '/budget',
     });
   } else if (config) {
     alerts.push({
@@ -161,12 +166,12 @@ export default function AlertsScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        {/* ── Ambient glow ──────────────────────────── */}
+        <AmbientGlow height={260} intensity={0.8} />
+
         {/* ── Header ─────────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Alertas</Text>
-          <Text style={styles.headerSubtitle}>
-            {getPeriodLabel(period)}
-          </Text>
+          <TabHeader title="Alertas" subtitle={getPeriodLabel(period)} />
         </View>
 
         {/* ── Balance summary ────────────────────────── */}
@@ -207,17 +212,14 @@ export default function AlertsScreen() {
                 <Text style={styles.alertTitle}>{alert.title}</Text>
                 <Text style={styles.alertText}>{alert.body}</Text>
                 {alert.actionLabel && alert.actionRoute && (
-                  <Pressable
-                    style={styles.alertAction}
-                    onPress={() => router.push(alert.actionRoute!)}
-                  >
-                    <Text style={styles.alertActionText}>{alert.actionLabel}</Text>
-                    <MaterialCommunityIcons
-                      name="chevron-right"
-                      size={18}
-                      color={darkColors.red}
+                  <View style={styles.alertActionWrap}>
+                    <PrimaryButton
+                      title={alert.actionLabel}
+                      icon="chevron-right"
+                      compact
+                      onPress={() => router.push(alert.actionRoute!)}
                     />
-                  </Pressable>
+                  </View>
                 )}
               </View>
             </View>
@@ -262,18 +264,8 @@ const styles = StyleSheet.create({
   // Header
   header: {
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.lg,
-  },
-  headerTitle: {
-    ...typography.h1,
-    color: darkColors.textPrimary,
-    fontWeight: '700',
-  },
-  headerSubtitle: {
-    ...typography.small,
-    color: darkColors.textSecondary,
-    marginTop: spacing.xs,
+    paddingTop: spacing.lg,
+    paddingBottom: spacing.md,
   },
 
   // Balance summary
@@ -285,7 +277,6 @@ const styles = StyleSheet.create({
     borderColor: darkColors.borderSubtle,
     padding: spacing.xl,
     alignItems: 'center',
-    ...shadows.md,
   },
   summaryLabel: {
     ...typography.label,
@@ -318,7 +309,6 @@ const styles = StyleSheet.create({
     borderColor: darkColors.borderSubtle,
     padding: spacing.lg,
     gap: spacing.md,
-    ...shadows.sm,
   },
   alertIconWrap: {
     width: 44,
@@ -338,17 +328,10 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: darkColors.textSecondary,
     marginTop: 2,
+    lineHeight: 20,
   },
-  alertAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    marginTop: spacing.sm,
-  },
-  alertActionText: {
-    ...typography.bodyBold,
-    color: darkColors.red,
-    fontSize: 14,
+  alertActionWrap: {
+    marginTop: spacing.md,
   },
 
   // Stats
@@ -365,7 +348,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: darkColors.borderSubtle,
     padding: spacing.lg,
-    ...shadows.sm,
   },
   statLabel: {
     ...typography.label,

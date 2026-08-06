@@ -16,18 +16,14 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Timestamp } from '@react-native-firebase/firestore';
 import { addTransaction } from '../../src/services/transactions';
 import { getGroupId } from '../../src/utils/storage';
-import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import AmbientGlow from '../../src/components/AmbientGlow';
+import TabHeader from '../../src/components/TabHeader';
+import PrimaryButton from '../../src/components/PrimaryButton';
+import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 
 // ─── Currency formatting helpers ────────────────────────
-const fmt = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
 function parseAmount(raw: string): number {
   // Remove everything except digits and decimal point
   const cleaned = raw.replace(/[^0-9.]/g, '');
@@ -135,6 +131,9 @@ export default function AddTransactionScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* ── Ambient glow ──────────────────────── */}
+          <AmbientGlow height={240} intensity={0.8} />
+
           {/* ── Header ─────────────────────────── */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
@@ -144,13 +143,12 @@ export default function AddTransactionScreen() {
                 color={darkColors.textPrimary}
               />
             </TouchableOpacity>
-            <Text style={styles.headerTitle}>Nuevo gasto</Text>
-            <View style={{ width: 32 }} />
+            <TabHeader title="Nuevo gasto" logoSize={40} />
           </View>
 
-          {/* ── Amount Input ────────────────────── */}
-          <View style={styles.amountSection}>
-            <Text style={styles.amountLabel}>MONTO</Text>
+          {/* ── Amount ────────────────────────────── */}
+          <View style={styles.card}>
+            <Text style={styles.sectionLabel}>MONTO</Text>
             <View style={styles.amountRow}>
               <Text style={styles.currencySymbol}>$</Text>
               <TextInput
@@ -199,7 +197,7 @@ export default function AddTransactionScreen() {
           </View>
 
           {/* ── Description ──────────────────────── */}
-          <View style={styles.section}>
+          <View style={styles.card}>
             <Text style={styles.sectionLabel}>DESCRIPCIÓN</Text>
             {errors.description && (
               <Text style={styles.errorText}>{errors.description}</Text>
@@ -222,7 +220,7 @@ export default function AddTransactionScreen() {
           </View>
 
           {/* ── Date Selector ─────────────────────── */}
-          <View style={styles.section}>
+          <View style={styles.card}>
             <Text style={styles.sectionLabel}>FECHA</Text>
             <View style={styles.dateRow}>
               <TouchableOpacity
@@ -254,26 +252,15 @@ export default function AddTransactionScreen() {
             </View>
           </View>
 
-          {/* ── Submit Button ──────────────────────── */}
+          {/* ── Submit ──────────────────────────────── */}
           <View style={styles.submitSection}>
-            <TouchableOpacity
-              style={[
-                styles.submitButton,
-                (!canSubmit || submitting) && styles.submitButtonDisabled,
-              ]}
+            <PrimaryButton
+              title={submitting ? 'Registrando...' : 'REGISTRAR GASTO'}
+              icon="check-circle-outline"
               onPress={handleSubmit}
-              disabled={!canSubmit || submitting}
-              activeOpacity={0.85}
-            >
-              <MaterialCommunityIcons
-                name="check-circle-outline"
-                size={22}
-                color="#FFFFFF"
-              />
-              <Text style={styles.submitText}>
-                {submitting ? 'Registrando...' : 'REGISTRAR GASTO'}
-              </Text>
-            </TouchableOpacity>
+              loading={submitting}
+              disabled={!canSubmit}
+            />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -307,29 +294,29 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.md,
   },
   backBtn: {
     padding: spacing.sm,
-  },
-  headerTitle: {
-    ...typography.h3,
-    color: darkColors.textPrimary,
+    marginRight: spacing.xs,
   },
 
-  // Amount
-  amountSection: {
-    alignItems: 'center',
-    paddingVertical: spacing.xl,
-    paddingHorizontal: spacing.xxl,
+  // Cards
+  card: {
+    backgroundColor: darkColors.surface,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    padding: spacing.xl,
   },
-  amountLabel: {
+  sectionLabel: {
     ...typography.label,
     color: darkColors.textSecondary,
-    letterSpacing: 2,
-    marginBottom: spacing.sm,
+    letterSpacing: 1.5,
+    marginBottom: spacing.md,
   },
   amountRow: {
     flexDirection: 'row',
@@ -363,7 +350,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: darkColors.surface,
+    backgroundColor: darkColors.surfaceElevated,
     borderWidth: 1,
     borderColor: darkColors.divider,
   },
@@ -380,22 +367,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
-  // Sections
-  section: {
-    paddingHorizontal: spacing.xxl,
-    marginTop: spacing.xl,
-  },
-  sectionLabel: {
-    ...typography.label,
-    color: darkColors.textSecondary,
-    letterSpacing: 1.5,
-    marginBottom: spacing.md,
-  },
-
   // Text Input
   textInput: {
     height: 52,
-    backgroundColor: darkColors.surface,
+    backgroundColor: darkColors.surfaceElevated,
     borderWidth: 1,
     borderColor: darkColors.divider,
     borderRadius: borderRadius.md,
@@ -409,12 +384,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: darkColors.surface,
+    backgroundColor: darkColors.surfaceElevated,
     borderRadius: borderRadius.md,
     borderWidth: 1,
     borderColor: darkColors.divider,
     paddingVertical: spacing.md,
-    ...shadows.sm,
   },
   dateArrow: {
     paddingHorizontal: spacing.xl,
@@ -436,29 +410,8 @@ const styles = StyleSheet.create({
 
   // Submit
   submitSection: {
-    marginTop: spacing.xxxl,
-    paddingHorizontal: spacing.xxl,
-    alignItems: 'center',
-  },
-  submitButton: {
-    width: '100%',
-    height: 56,
-    backgroundColor: darkColors.red,
-    borderRadius: borderRadius.md,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.sm,
-    ...shadows.md,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitText: {
-    ...typography.bodyBold,
-    color: '#FFFFFF',
-    fontSize: 16,
-    letterSpacing: 1,
+    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
   },
 
   // Error

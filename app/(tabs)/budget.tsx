@@ -17,8 +17,11 @@ import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
+import AmbientGlow from '../../src/components/AmbientGlow';
+import TabHeader from '../../src/components/TabHeader';
+import PrimaryButton from '../../src/components/PrimaryButton';
 import { getPeriodLabel } from '../../src/utils/date';
-import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../../src/types';
@@ -50,7 +53,9 @@ function parseDay(raw: string): number {
   return Math.min(31, Math.max(0, n));
 }
 
-// ─── Main Screen (Credit) ───────────────────────────────
+const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
+
+// ─── Main Screen (Crédito) ───────────────────────────────
 export default function BudgetScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
@@ -153,6 +158,7 @@ export default function BudgetScreen() {
 
   // ─── Setup / edit form ──────────────────────────────
   if (!config || editing) {
+    const currentAmount = parseAmount(amountText);
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <KeyboardAvoidingView
@@ -165,11 +171,13 @@ export default function BudgetScreen() {
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
           >
+            <AmbientGlow height={220} intensity={0.7} />
+
             <View style={styles.header}>
-              <Text style={styles.headerTitle}>Crédito</Text>
-              <Text style={styles.groupName}>
-                {config ? 'Editar presupuesto' : '¿Cuánto quieres gastar?'}
-              </Text>
+              <TabHeader
+                title="Crédito"
+                subtitle={config ? 'Editar presupuesto' : 'Nuevo presupuesto'}
+              />
             </View>
 
             <View style={styles.formCard}>
@@ -195,6 +203,33 @@ export default function BudgetScreen() {
                 />
               </View>
 
+              {/* Quick amounts */}
+              <View style={styles.quickRow}>
+                {QUICK_AMOUNTS.map((val) => {
+                  const active = currentAmount === val;
+                  return (
+                    <TouchableOpacity
+                      key={val}
+                      style={[styles.quickChip, active && styles.quickChipActive]}
+                      onPress={() => {
+                        setAmountText(val.toString());
+                        if (formError) setFormError('');
+                      }}
+                      activeOpacity={0.7}
+                    >
+                      <Text
+                        style={[
+                          styles.quickChipText,
+                          active && styles.quickChipTextActive,
+                        ]}
+                      >
+                        ${val}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
               <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>
                 DÍA DE CORTE (1-31)
               </Text>
@@ -218,21 +253,12 @@ export default function BudgetScreen() {
               {formError !== '' && <Text style={styles.errorText}>{formError}</Text>}
 
               <View style={styles.formButtons}>
-                <TouchableOpacity
-                  style={[styles.submitButton, submitting && styles.submitButtonDisabled]}
+                <PrimaryButton
+                  title={submitting ? 'Guardando...' : 'GUARDAR PRESUPUESTO'}
+                  icon="check-circle-outline"
                   onPress={handleSave}
-                  disabled={submitting}
-                  activeOpacity={0.85}
-                >
-                  <MaterialCommunityIcons
-                    name="check-circle-outline"
-                    size={22}
-                    color="#FFFFFF"
-                  />
-                  <Text style={styles.submitText}>
-                    {submitting ? 'Guardando...' : 'GUARDAR PRESUPUESTO'}
-                  </Text>
-                </TouchableOpacity>
+                  loading={submitting}
+                />
 
                 {config && (
                   <TouchableOpacity
@@ -259,26 +285,18 @@ export default function BudgetScreen() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <AmbientGlow height={300} intensity={0.8} />
+
         {/* ── Header ───────────────────────────────── */}
         <View style={styles.header}>
-          <View style={styles.headerRow}>
-            <View>
-              <Text style={styles.headerTitle}>Crédito</Text>
-              <Text style={styles.groupName}>Te queda</Text>
-            </View>
-            <TouchableOpacity style={styles.editBtn} onPress={openEdit} activeOpacity={0.8}>
-              <MaterialCommunityIcons
-                name="pencil-outline"
-                size={18}
-                color={darkColors.red}
-              />
-            </TouchableOpacity>
-          </View>
-          <Text style={styles.monthLabel}>{getPeriodLabel(period)}</Text>
+          <TabHeader title="Crédito" subtitle={getPeriodLabel(period)} />
         </View>
 
         {/* ── Summary Card ────────────────────────── */}
         <View style={styles.summaryCard}>
+          <Text style={styles.summaryLabel}>
+            {isOverBudget ? 'TE PASAS POR' : 'TE QUEDA'}
+          </Text>
           <Text
             style={[
               styles.summaryAmount,
@@ -325,6 +343,16 @@ export default function BudgetScreen() {
           {isOverBudget && (
             <Text style={styles.overBudgetText}>Te pasaste del presupuesto</Text>
           )}
+        </View>
+
+        {/* ── Essential action: editar presupuesto ─── */}
+        <View style={styles.ctaWrap}>
+          <PrimaryButton
+            title="Editar presupuesto"
+            icon="pencil-outline"
+            variant="outline"
+            onPress={openEdit}
+          />
         </View>
 
         {/* ── Period Transactions ─────────────────── */}
@@ -426,34 +454,6 @@ const styles = StyleSheet.create({
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
-  headerRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-  },
-  headerTitle: {
-    ...typography.h1,
-    color: darkColors.textPrimary,
-  },
-  groupName: {
-    ...typography.body,
-    color: darkColors.textSecondary,
-    marginTop: spacing.xs,
-  },
-  monthLabel: {
-    ...typography.small,
-    color: darkColors.textMuted,
-    marginTop: spacing.xs,
-  },
-  editBtn: {
-    width: 38,
-    height: 38,
-    borderRadius: borderRadius.full,
-    backgroundColor: darkColors.surface,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.sm,
-  },
 
   // Summary Card
   summaryCard: {
@@ -464,12 +464,17 @@ const styles = StyleSheet.create({
     borderColor: darkColors.borderSubtle,
     padding: spacing.xl,
     alignItems: 'center',
-    ...shadows.md,
+  },
+  summaryLabel: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1.2,
   },
   summaryAmount: {
     fontSize: 40,
     fontWeight: '700',
     letterSpacing: -0.5,
+    marginTop: spacing.sm,
   },
   summaryAmountPositive: {
     color: darkColors.green,
@@ -525,6 +530,12 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
 
+  // Essential CTA
+  ctaWrap: {
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.md,
+  },
+
   // Sections
   section: {
     marginTop: spacing.xxl,
@@ -542,7 +553,6 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: darkColors.borderSubtle,
     paddingHorizontal: spacing.lg,
-    ...shadows.sm,
   },
 
   // Empty State
@@ -585,8 +595,9 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xl,
     marginTop: spacing.lg,
     borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
     padding: spacing.xl,
-    ...shadows.md,
   },
   sectionLabel: {
     ...typography.label,
@@ -621,6 +632,33 @@ const styles = StyleSheet.create({
     borderBottomColor: darkColors.red,
     paddingBottom: spacing.sm,
   },
+  quickRow: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    marginTop: spacing.lg,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+  },
+  quickChip: {
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: borderRadius.full,
+    backgroundColor: darkColors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: darkColors.divider,
+  },
+  quickChipActive: {
+    backgroundColor: darkColors.red,
+    borderColor: darkColors.red,
+  },
+  quickChipText: {
+    ...typography.caption,
+    color: darkColors.textSecondary,
+  },
+  quickChipTextActive: {
+    color: '#FFFFFF',
+    fontWeight: '600',
+  },
   dayInput: {
     height: 52,
     width: 100,
@@ -636,26 +674,6 @@ const styles = StyleSheet.create({
   formButtons: {
     marginTop: spacing.xxl,
     alignItems: 'center',
-  },
-  submitButton: {
-    width: '100%',
-    height: 56,
-    backgroundColor: darkColors.red,
-    borderRadius: borderRadius.md,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: spacing.sm,
-    ...shadows.md,
-  },
-  submitButtonDisabled: {
-    opacity: 0.5,
-  },
-  submitText: {
-    ...typography.bodyBold,
-    color: '#FFFFFF',
-    fontSize: 16,
-    letterSpacing: 1,
   },
   cancelButton: {
     marginTop: spacing.md,

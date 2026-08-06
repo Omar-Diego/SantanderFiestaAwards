@@ -16,7 +16,6 @@ const BAR_HEIGHT = 68;
 // reliably exposed by expo-router to a custom tab bar.
 const TAB_CONFIG: Record<string, { label: string; icon: (focused: boolean) => string }> = {
   dashboard: { label: 'Inicio', icon: (focused) => (focused ? 'home' : 'home-outline') },
-  budget: { label: 'Crédito', icon: () => 'finance' },
   history: { label: 'Actividad', icon: () => 'format-list-bulleted' },
   alerts: { label: 'Alertas', icon: (focused) => (focused ? 'bell' : 'bell-outline') },
 };
@@ -97,10 +96,10 @@ export default function TabLayout() {
         tabBar={(props) => <FloatingTabBar {...props} />}
       >
         <Tabs.Screen name="dashboard" options={{ title: 'Inicio' }} />
-        <Tabs.Screen name="budget" options={{ title: 'Crédito' }} />
         <Tabs.Screen name="history" options={{ title: 'Actividad' }} />
         <Tabs.Screen name="alerts" options={{ title: 'Alertas' }} />
-        {/* Registrar gasto: hidden from the bar, opened from Home's quick actions */}
+        {/* Hidden screens, opened from Home's quick actions: Registrar gasto y Crédito */}
+        <Tabs.Screen name="settings" options={{ href: null, title: 'Crédito' }} />
         <Tabs.Screen name="add" options={{ href: null }} />
       </Tabs>
     </View>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import {
   View,
   Text,
@@ -12,17 +12,16 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
-import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
-import { getPeriodLabel, groupTransactionsByDay } from '../../src/utils/date';
-import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
-import type { Transaction } from '../../src/types';
+import { getPeriodLabel } from '../../src/utils/date';
+import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 
 // ─── Currency formatter ─────────────────────────────────
 const fmt = new Intl.NumberFormat('es-MX', {
@@ -49,8 +48,8 @@ function parseDay(raw: string): number {
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
-// ─── Main Screen (Crédito) ───────────────────────────────
-export default function BudgetScreen() {
+// ─── Main Screen (Crédito) ──────────────────────────────
+export default function SettingsScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
 
@@ -76,6 +75,10 @@ export default function BudgetScreen() {
 
   const loading = !storageLoaded || txLoading || budgetLoading;
 
+  // Auto-open edit mode when arriving with ?edit=1 (Home quick action)
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const autoOpenedEdit = useRef(false);
+
   // Form state (used both for first-time setup and editing)
   const [editing, setEditing] = useState(false);
   const [amountText, setAmountText] = useState('');
@@ -89,6 +92,20 @@ export default function BudgetScreen() {
     setFormError('');
     setEditing(true);
   }
+
+  // Open the edit form once the budget config is loaded, when arriving via ?edit=1
+  useEffect(() => {
+    if (edit === '1' && config && !autoOpenedEdit.current) {
+      autoOpenedEdit.current = true;
+      openEdit();
+    }
+  }, [edit, config]);
+
+  // Leaving the form resets the flag so the Home quick action can open it again
+  const cancelEdit = () => {
+    autoOpenedEdit.current = false;
+    setEditing(false);
+  };
 
   async function handleSave() {
     const amount = parseAmount(amountText);
@@ -121,12 +138,6 @@ export default function BudgetScreen() {
   }, [config, spent]);
 
   const isOverBudget = remaining < 0;
-
-  // ─── Period transactions grouped by day (Actividad style) ──
-  const groupedPeriod = useMemo(
-    () => groupTransactionsByDay(periodTransactions),
-    [periodTransactions]
-  );
 
   // ─── Loading state ──────────────────────────────────
   if (loading) {
@@ -263,7 +274,7 @@ export default function BudgetScreen() {
                 {config && (
                   <TouchableOpacity
                     style={styles.cancelButton}
-                    onPress={() => setEditing(false)}
+                    onPress={cancelEdit}
                     disabled={submitting}
                   >
                     <Text style={styles.cancelText}>Cancelar</Text>
@@ -354,80 +365,11 @@ export default function BudgetScreen() {
           />
         </View>
 
-        {/* ── Period Transactions (own card per expense) ─── */}
-        {periodTransactions.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Gastos de este período</Text>
-            {groupedPeriod.map((item) =>
-              item.kind === 'header' ? (
-                <Text key={item.key} style={sharedStyles.dayHeader}>
-                  {item.label}
-                </Text>
-              ) : (
-                <TransactionCard key={item.key} transaction={item.transaction} />
-              )
-            )}
-          </View>
-        )}
-
-        {periodTransactions.length === 0 && (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="receipt-outline"
-              size={48}
-              color={darkColors.textMuted}
-            />
-            <Text style={styles.emptyTitle}>Sin gastos</Text>
-            <Text style={styles.emptySubtitle}>Aún no hay gastos registrados</Text>
-          </View>
-        )}
-
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
   );
 }
-
-// ─── Transaction Card Component (own card per expense) ─
-function TransactionCard({ transaction }: { transaction: Transaction }) {
-  return (
-    <View style={txStyles.card}>
-      <MerchantAvatar description={transaction.description} />
-      <View style={txStyles.info}>
-        <Text style={txStyles.description} numberOfLines={1}>
-          {transaction.description}
-        </Text>
-      </View>
-      <Text style={txStyles.amount}>-{formatCurrency(transaction.amount)}</Text>
-    </View>
-  );
-}
-
-const txStyles = StyleSheet.create({
-  card: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    padding: spacing.lg,
-    gap: spacing.md,
-    marginBottom: spacing.sm,
-  },
-  info: {
-    flex: 1,
-  },
-  description: {
-    ...typography.body,
-    color: darkColors.textPrimary,
-    fontWeight: '600',
-  },
-  amount: {
-    ...typography.bodyBold,
-    color: darkColors.textPrimary,
-  },
-});
 
 // ─── Styles ─────────────────────────────────────────────
 const styles = StyleSheet.create({
@@ -455,7 +397,7 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
   },
 
-  // Summary (sin fondo de card — directo sobre el fondo de la app)
+  // Summary Card
   summaryCard: {
     marginHorizontal: spacing.xl,
     padding: spacing.xl,
@@ -530,34 +472,6 @@ const styles = StyleSheet.create({
   ctaWrap: {
     marginHorizontal: spacing.xl,
     marginTop: spacing.md,
-  },
-
-  // Sections
-  section: {
-    marginTop: spacing.xxl,
-    paddingHorizontal: spacing.xl,
-  },
-  sectionTitle: {
-    ...typography.label,
-    color: darkColors.textSecondary,
-    letterSpacing: 1,
-    marginBottom: spacing.md,
-  },
-  // Empty State
-  emptyState: {
-    alignItems: 'center',
-    paddingHorizontal: spacing.xl,
-    paddingTop: spacing.huge,
-    gap: spacing.sm,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: darkColors.textPrimary,
-  },
-  emptySubtitle: {
-    ...typography.body,
-    color: darkColors.textSecondary,
-    textAlign: 'center',
   },
 
   // Error State

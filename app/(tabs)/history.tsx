@@ -11,14 +11,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
-import { router } from 'expo-router';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
 import { groupTransactionsByDay, type DayGroupItem } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
-import PrimaryButton from '../../src/components/PrimaryButton';
 import { deleteTransaction } from '../../src/services/transactions';
 import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
 import type { Transaction } from '../../src/types';
@@ -202,15 +200,6 @@ export default function HistoryScreen() {
           {filteredTransactions.length}{' '}
           {filteredTransactions.length === 1 ? 'gasto' : 'gastos'}
         </Text>
-      </View>
-
-      {/* ── Essential action: registrar gasto ──────── */}
-      <View style={styles.ctaWrap}>
-        <PrimaryButton
-          title="Registrar gasto"
-          icon="plus"
-          onPress={() => router.push('/add')}
-        />
       </View>
 
       {/* ── Transactions (own card per expense) ────── */}
@@ -413,12 +402,6 @@ const styles = StyleSheet.create({
     ...typography.small,
     color: darkColors.textMuted,
     marginTop: spacing.xs,
-  },
-
-  // Essential CTA
-  ctaWrap: {
-    marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
   },
 
   // Grouped list

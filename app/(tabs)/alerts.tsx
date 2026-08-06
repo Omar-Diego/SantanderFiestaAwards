@@ -39,7 +39,7 @@ interface AlertItem {
   title: string;
   body: string;
   actionLabel?: string;
-  actionRoute?: '/budget';
+  actionRoute?: '/settings' | '/settings?edit=1';
 }
 
 const toneColors: Record<AlertTone, string> = {
@@ -127,7 +127,7 @@ export default function AlertsScreen() {
       title: 'Sin presupuesto',
       body: 'Define una meta de gasto para recibir alertas automáticas.',
       actionLabel: 'Ir a Crédito',
-      actionRoute: '/budget',
+      actionRoute: '/settings?edit=1',
     });
   } else if (isOver) {
     alerts.push({
@@ -137,7 +137,7 @@ export default function AlertsScreen() {
       title: 'Presupuesto excedido',
       body: `Te pasaste por ${formatCurrency(Math.abs(remaining))} de tu meta de ${formatCurrency(config.amount)}.`,
       actionLabel: 'Ver presupuesto',
-      actionRoute: '/budget',
+      actionRoute: '/settings',
     });
   } else if (nearLimit) {
     alerts.push({
@@ -147,7 +147,7 @@ export default function AlertsScreen() {
       title: 'Cerca del límite',
       body: `Ya gastaste el ${Math.round(progress * 100)}% de tu presupuesto (${formatCurrency(spent)} de ${formatCurrency(config.amount)}).`,
       actionLabel: 'Ver presupuesto',
-      actionRoute: '/budget',
+      actionRoute: '/settings',
     });
   } else if (config) {
     alerts.push({

@@ -35,7 +35,8 @@ function formatCurrency(amount: number): string {
 // ─── Quick actions (Revolut-style circular shortcuts) ───
 const QUICK_ACTIONS = [
   { label: 'Registrar', icon: 'plus', route: '/add' },
-  { label: 'Presupuesto', icon: 'finance', route: '/budget?edit=1' },
+  { label: 'Presupuesto', icon: 'finance', route: '/settings' },
+  { label: 'Crédito', icon: 'credit-card-outline', route: '/settings?edit=1' },
 ] as const;
 
 // ─── Main Dashboard (Home) ──────────────────────────────
@@ -205,7 +206,7 @@ export default function DashboardScreen() {
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.periodCard}
-            onPress={() => router.push('/budget?edit=1')}
+            onPress={() => router.push('/settings?edit=1')}
             activeOpacity={0.7}
           >
             <View style={styles.periodLeft}>

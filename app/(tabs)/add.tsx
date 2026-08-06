@@ -147,7 +147,7 @@ export default function AddTransactionScreen() {
           </View>
 
           {/* ── Amount ────────────────────────────── */}
-          <View style={styles.card}>
+          <View style={styles.section}>
             <Text style={styles.sectionLabel}>MONTO</Text>
             <View style={styles.amountRow}>
               <Text style={styles.currencySymbol}>$</Text>
@@ -197,7 +197,7 @@ export default function AddTransactionScreen() {
           </View>
 
           {/* ── Description ──────────────────────── */}
-          <View style={styles.card}>
+          <View style={styles.section}>
             <Text style={styles.sectionLabel}>DESCRIPCIÓN</Text>
             {errors.description && (
               <Text style={styles.errorText}>{errors.description}</Text>
@@ -220,7 +220,7 @@ export default function AddTransactionScreen() {
           </View>
 
           {/* ── Date Selector ─────────────────────── */}
-          <View style={styles.card}>
+          <View style={styles.section}>
             <Text style={styles.sectionLabel}>FECHA</Text>
             <View style={styles.dateRow}>
               <TouchableOpacity
@@ -302,15 +302,10 @@ const styles = StyleSheet.create({
     marginRight: spacing.xs,
   },
 
-  // Cards
-  card: {
-    backgroundColor: darkColors.surface,
+  // Sections (sin card — directo sobre el fondo de la app, igual que Crédito)
+  section: {
     marginHorizontal: spacing.xl,
-    marginBottom: spacing.md,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    padding: spacing.xl,
+    marginBottom: spacing.xl,
   },
   sectionLabel: {
     ...typography.label,

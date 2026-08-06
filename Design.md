@@ -135,7 +135,7 @@ Todas las pestañas comparten la identidad del Home:
   | Nuevo gasto | Botón **REGISTRAR GASTO** (outline, ancho completo) |
 - **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "TE QUEDA"; Alertas: "DISPONIBLE EN EL PERÍODO")
 - Formulario de **Crédito**: **sin card** — directo sobre el fondo de la app; teclado numérico puro (solo dígitos, sin símbolos +/−)
-- Formulario de **Nuevo gasto**: secciones dentro de **cards** `#1C1C1E` con borde sutil
+- Formulario de **Nuevo gasto**: **sin card** — directo sobre el fondo de la app, igual que Crédito (solo los inputs conservan su fondo `surfaceElevated`)
 - **Lista de gastos en Actividad y Crédito: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil) con el avatar de comercio (`MerchantAvatar`), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `getDayLabel` en `src/utils/date.ts`)
 - **Estados vacíos unificados** (Inicio, Actividad y Crédito): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
 

@@ -12,7 +12,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
+import AmbientGlow from '../../src/components/AmbientGlow';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
@@ -161,22 +161,7 @@ export default function DashboardScreen() {
         }
       >
         {/* ── Ambient glow (Revolut-style fluid background) ── */}
-        <View pointerEvents="none" style={styles.glow}>
-          <Svg height="100%" width="100%">
-            <Defs>
-              <RadialGradient id="glowRed" cx="50%" cy="50%" r="50%">
-                <Stop offset="0%" stopColor={darkColors.red} stopOpacity={0.16} />
-                <Stop offset="100%" stopColor={darkColors.red} stopOpacity={0} />
-              </RadialGradient>
-              <RadialGradient id="glowPurple" cx="50%" cy="50%" r="50%">
-                <Stop offset="0%" stopColor="#7B3FE4" stopOpacity={0.12} />
-                <Stop offset="100%" stopColor="#7B3FE4" stopOpacity={0} />
-              </RadialGradient>
-            </Defs>
-            <Circle cx="85%" cy="12%" r="150" fill="url(#glowRed)" />
-            <Circle cx="8%" cy="60%" r="190" fill="url(#glowPurple)" />
-          </Svg>
-        </View>
+        <AmbientGlow />
 
         {/* ── Header (logo Santander) ──────────────── */}
         <View style={styles.header}>
@@ -346,15 +331,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     gap: spacing.md,
-  },
-
-  // Ambient glow
-  glow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 320,
   },
 
   // Header — Santander logo in a white circle

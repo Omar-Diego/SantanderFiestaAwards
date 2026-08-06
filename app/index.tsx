@@ -12,6 +12,7 @@ import {
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkColors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import PrimaryButton from '../src/components/PrimaryButton';
 import { createGroup, joinGroup, isValidGroupCode } from '../src/services/group';
 import { saveGroupId, saveGroupName, getGroupId } from '../src/utils/storage';
 
@@ -118,7 +119,7 @@ export default function SetupScreen() {
               setCodeError('');
               setMode('create');
             }}
-            submitting={submitting}
+            loading={submitting}
           />
         </View>
 
@@ -178,7 +179,7 @@ export default function SetupScreen() {
           <PrimaryButton
             title="CREAR GRUPO"
             onPress={handleCreateGroup}
-            submitting={submitting}
+            loading={submitting}
           />
 
           <TouchableOpacity style={styles.backButton} onPress={() => setMode('choose')}>
@@ -228,7 +229,7 @@ export default function SetupScreen() {
         <PrimaryButton
           title="UNIRSE AL GRUPO"
           onPress={handleJoinGroup}
-          submitting={submitting}
+          loading={submitting}
         />
 
         <TouchableOpacity
@@ -242,46 +243,6 @@ export default function SetupScreen() {
         </TouchableOpacity>
       </View>
     </ScrollView>
-  );
-}
-
-// ─── Primary Button ─────────────────────────────────────
-function PrimaryButton({
-  title,
-  onPress,
-  variant = 'solid',
-  submitting = false,
-}: {
-  title: string;
-  onPress: () => void;
-  variant?: 'solid' | 'outline';
-  submitting?: boolean;
-}) {
-  const solid = variant === 'solid';
-  return (
-    <TouchableOpacity
-      style={[
-        styles.primaryButton,
-        solid ? styles.primaryButtonSolid : styles.primaryButtonOutline,
-        submitting && styles.primaryButtonDisabled,
-      ]}
-      onPress={onPress}
-      disabled={submitting}
-      activeOpacity={0.85}
-    >
-      {submitting ? (
-        <ActivityIndicator color={solid ? '#FFFFFF' : darkColors.red} size="small" />
-      ) : (
-        <Text
-          style={[
-            styles.primaryButtonText,
-            solid ? styles.primaryButtonTextSolid : styles.primaryButtonTextOutline,
-          ]}
-        >
-          {title}
-        </Text>
-      )}
-    </TouchableOpacity>
   );
 }
 
@@ -420,37 +381,6 @@ const styles = StyleSheet.create({
   backButtonText: {
     ...typography.body,
     color: darkColors.textSecondary,
-  },
-
-  // Primary button
-  primaryButton: {
-    height: 54,
-    borderRadius: borderRadius.md,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  primaryButtonSolid: {
-    backgroundColor: darkColors.red,
-    ...shadows.md,
-  },
-  primaryButtonOutline: {
-    borderWidth: 1.5,
-    borderColor: darkColors.red,
-    backgroundColor: 'transparent',
-  },
-  primaryButtonDisabled: {
-    opacity: 0.5,
-  },
-  primaryButtonText: {
-    ...typography.bodyBold,
-    fontSize: 15,
-    letterSpacing: 1,
-  },
-  primaryButtonTextSolid: {
-    color: '#FFFFFF',
-  },
-  primaryButtonTextOutline: {
-    color: darkColors.red,
   },
 
   // Input

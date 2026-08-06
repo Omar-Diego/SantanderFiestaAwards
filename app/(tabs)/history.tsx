@@ -11,6 +11,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
+import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
 import { groupTransactionsByDay, type DayGroupItem } from '../../src/utils/date';
@@ -244,28 +245,37 @@ function SwipeableRow({
   isDeleting: boolean;
 }) {
   const renderRightActions = useCallback(
-    () => (
-      <View style={swipeStyles.action}>
-        <TouchableOpacity
-          onPress={onDelete}
-          style={swipeStyles.actionInner}
-          activeOpacity={0.8}
-        >
-          {isDeleting ? (
-            <ActivityIndicator color="#FFFFFF" size="small" />
-          ) : (
-            <>
-              <MaterialCommunityIcons
-                name="trash-can-outline"
-                size={22}
-                color="#FFFFFF"
-              />
-              <Text style={swipeStyles.actionText}>Eliminar</Text>
-            </>
-          )}
-        </TouchableOpacity>
-      </View>
-    ),
+    (progress: SharedValue<number>) => {
+      // The delete button is fully invisible while the row is closed and only
+      // fades in as the user swipes left (progress goes 0 → 1). This guarantees
+      // the button never appears behind/under a card when idle.
+      const actionStyle = useAnimatedStyle(() => ({
+        opacity: progress.value,
+      }));
+
+      return (
+        <Animated.View style={[swipeStyles.action, actionStyle]}>
+          <TouchableOpacity
+            onPress={onDelete}
+            style={swipeStyles.actionInner}
+            activeOpacity={0.8}
+          >
+            {isDeleting ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <>
+                <MaterialCommunityIcons
+                  name="trash-can-outline"
+                  size={22}
+                  color="#FFFFFF"
+                />
+                <Text style={swipeStyles.actionText}>Eliminar</Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </Animated.View>
+      );
+    },
     [onDelete, isDeleting]
   );
 
@@ -298,7 +308,10 @@ const swipeStyles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     width: 84,
-    borderRadius: borderRadius.md,
+    // Same corner radius as the card: when idle this button sits behind the
+    // card, and a smaller radius would peek out red slivers on the card's
+    // top/bottom edges (the visible "red line" the user reported)
+    borderRadius: borderRadius.lg,
     marginRight: spacing.sm,
     // The card no longer carries a bottom margin (spacing moved to the row
     // wrapper), so the swipeable row measures exactly the card height and
@@ -328,9 +341,6 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: darkColors.borderSubtle,
-    // Right edge in red signals the card can be swiped to delete
-    borderRightWidth: 3,
-    borderRightColor: darkColors.red,
     padding: spacing.lg,
     gap: spacing.md,
   },
@@ -420,9 +430,11 @@ const styles = StyleSheet.create({
   list: {
     flex: 1,
   },
+  // Extra bottom padding so the last row can scroll clear of the floating
+  // pill nav bar (height 68 + safe-area inset + 16px offset)
   listContent: {
     paddingHorizontal: spacing.xl,
-    paddingBottom: 48,
+    paddingBottom: 160,
   },
   // Spacing between rows lives here (see renderItem) so the swipeable
   // measures the exact card height and the delete button matches it

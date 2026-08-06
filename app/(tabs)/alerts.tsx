@@ -39,7 +39,7 @@ interface AlertItem {
   title: string;
   body: string;
   actionLabel?: string;
-  actionRoute?: '/settings' | '/settings?edit=1';
+  actionRoute?: '/settings';
 }
 
 const toneColors: Record<AlertTone, string> = {
@@ -127,7 +127,7 @@ export default function AlertsScreen() {
       title: 'Sin presupuesto',
       body: 'Define una meta de gasto para recibir alertas automáticas.',
       actionLabel: 'Ir a Crédito',
-      actionRoute: '/settings?edit=1',
+      actionRoute: '/settings',
     });
   } else if (isOver) {
     alerts.push({

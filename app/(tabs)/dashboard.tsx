@@ -35,8 +35,8 @@ function formatCurrency(amount: number): string {
 // ─── Quick actions (Revolut-style circular shortcuts) ───
 const QUICK_ACTIONS = [
   { label: 'Registrar', icon: 'plus', route: '/add' },
-  { label: 'Presupuesto', icon: 'finance', route: '/settings' },
-  { label: 'Crédito', icon: 'credit-card-outline', route: '/settings?edit=1' },
+  { label: 'Alertas', icon: 'bell-outline', route: '/alerts' },
+  { label: 'Crédito', icon: 'credit-card-outline', route: '/settings' },
 ] as const;
 
 // ─── Main Dashboard (Home) ──────────────────────────────
@@ -203,12 +203,9 @@ export default function DashboardScreen() {
         </View>
 
         {/* ── Weekly available (replaces PERÍODO) ────── */}
+        {/* Informational only — deliberately NOT tappable */}
         <View style={styles.section}>
-          <TouchableOpacity
-            style={styles.periodCard}
-            onPress={() => router.push('/settings?edit=1')}
-            activeOpacity={0.7}
-          >
+          <View style={styles.periodCard}>
             <View style={styles.periodLeft}>
               <Text style={styles.sectionTitle}>
                 DISPONIBLE ESTA SEMANA
@@ -240,12 +237,7 @@ export default function DashboardScreen() {
                 </>
               )}
             </View>
-            {!budgetConfig && (
-              <View style={styles.duePill}>
-                <Text style={styles.duePillText}>Define presupuesto</Text>
-              </View>
-            )}
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Recent activity (own card per expense) ── */}
@@ -492,17 +484,6 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: darkColors.textSecondary,
     marginTop: spacing.xs,
-  },
-  duePill: {
-    backgroundColor: darkColors.pill,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-  },
-  duePillText: {
-    ...typography.small,
-    color: darkColors.textPrimary,
-    fontWeight: '600',
   },
 
   // Error state

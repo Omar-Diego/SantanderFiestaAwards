@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import {
   View,
   Text,
@@ -12,27 +12,14 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useLocalSearchParams } from 'expo-router';
+import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
-import { getPeriodLabel } from '../../src/utils/date';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
-
-// ─── Currency formatter ─────────────────────────────────
-const fmt = new Intl.NumberFormat('es-MX', {
-  style: 'currency',
-  currency: 'MXN',
-  minimumFractionDigits: 2,
-});
-
-function formatCurrency(amount: number): string {
-  return fmt.format(amount);
-}
 
 function parseAmount(raw: string): number {
   const cleaned = raw.replace(/[^0-9.]/g, '');
@@ -48,7 +35,9 @@ function parseDay(raw: string): number {
 
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
-// ─── Main Screen (Crédito) ──────────────────────────────
+// ─── Main Screen (Crédito) — formulario directo ─────────
+// Reached from Home's quick action (and Alerts). There is no summary view:
+// the screen IS the edit/setup form, prefilled with the current budget.
 export default function SettingsScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
@@ -61,51 +50,26 @@ export default function SettingsScreen() {
     })();
   }, []);
 
-  const { transactions, loading: txLoading } = useTransactions(groupId);
-  const {
-    config,
-    loading: budgetLoading,
-    error,
-    period,
-    periodTransactions,
-    spent,
-    remaining,
-    saveBudget,
-  } = useBudget(groupId, transactions);
+  const { config, loading: budgetLoading, error, saveBudget } = useBudget(
+    groupId,
+    []
+  );
 
-  const loading = !storageLoaded || txLoading || budgetLoading;
+  const loading = !storageLoaded || budgetLoading;
 
-  // Auto-open edit mode when arriving with ?edit=1 (Home quick action)
-  const { edit } = useLocalSearchParams<{ edit?: string }>();
-  const autoOpenedEdit = useRef(false);
-
-  // Form state (used both for first-time setup and editing)
-  const [editing, setEditing] = useState(false);
+  // ─── Form state ─────────────────────────────────────
   const [amountText, setAmountText] = useState('');
   const [cutoffDayText, setCutoffDayText] = useState('1');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
 
-  function openEdit() {
-    setAmountText(config ? String(config.amount) : '');
-    setCutoffDayText(config ? String(config.cutoffDay) : '1');
-    setFormError('');
-    setEditing(true);
-  }
-
-  // Open the edit form once the budget config is loaded, when arriving via ?edit=1
+  // Prefill the form once the current config arrives
   useEffect(() => {
-    if (edit === '1' && config && !autoOpenedEdit.current) {
-      autoOpenedEdit.current = true;
-      openEdit();
+    if (config) {
+      setAmountText(String(config.amount));
+      setCutoffDayText(String(config.cutoffDay));
     }
-  }, [edit, config]);
-
-  // Leaving the form resets the flag so the Home quick action can open it again
-  const cancelEdit = () => {
-    autoOpenedEdit.current = false;
-    setEditing(false);
-  };
+  }, [config]);
 
   async function handleSave() {
     const amount = parseAmount(amountText);
@@ -124,20 +88,18 @@ export default function SettingsScreen() {
     setSubmitting(true);
     try {
       await saveBudget(amount, cutoffDay);
-      setEditing(false);
     } catch (err) {
-      Alert.alert('Error', 'No se pudo guardar el presupuesto. Verifica tu conexión.');
-    } finally {
       setSubmitting(false);
+      Alert.alert(
+        'Error',
+        'No se pudo guardar el presupuesto. Verifica tu conexión.'
+      );
+      return;
     }
+    setSubmitting(false);
+    // This screen has no summary anymore — return to where we came from
+    router.back();
   }
-
-  const progress = useMemo(() => {
-    if (!config || config.amount <= 0) return 0;
-    return Math.min(1, Math.max(0, spent / config.amount));
-  }, [config, spent]);
-
-  const isOverBudget = remaining < 0;
 
   // ─── Loading state ──────────────────────────────────
   if (loading) {
@@ -167,206 +129,119 @@ export default function SettingsScreen() {
     );
   }
 
-  // ─── Setup / edit form ──────────────────────────────
-  if (!config || editing) {
-    const currentAmount = parseAmount(amountText);
-    return (
-      <SafeAreaView style={styles.container} edges={['top']}>
-        <KeyboardAvoidingView
-          style={{ flex: 1 }}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        >
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            <AmbientGlow height={220} intensity={0.7} />
+  const currentAmount = parseAmount(amountText);
 
-            <View style={styles.header}>
-              <TabHeader
-                title="Crédito"
-                subtitle={config ? 'Editar presupuesto' : 'Nuevo presupuesto'}
-              />
-            </View>
-
-            <View style={styles.form}>
-              <Text style={styles.sectionLabel}>MONTO POR PERÍODO</Text>
-              <View style={styles.amountRow}>
-                <Text style={styles.currencySymbol}>$</Text>
-                <TextInput
-                  style={styles.amountInput}
-                  value={amountText}
-                  onChangeText={(t) => {
-                    const cleaned = t.replace(/[^0-9.]/g, '');
-                    const parts = cleaned.split('.');
-                    if (parts.length > 2) return;
-                    if (parts[1]?.length > 2) return;
-                    setAmountText(cleaned);
-                    if (formError) setFormError('');
-                  }}
-                  placeholder="0"
-                  placeholderTextColor={darkColors.textMuted}
-                  keyboardType="number-pad"
-                  keyboardAppearance="dark"
-                  autoFocus
-                />
-              </View>
-
-              {/* Quick amounts */}
-              <View style={styles.quickRow}>
-                {QUICK_AMOUNTS.map((val) => {
-                  const active = currentAmount === val;
-                  return (
-                    <TouchableOpacity
-                      key={val}
-                      style={[styles.quickChip, active && styles.quickChipActive]}
-                      onPress={() => {
-                        setAmountText(val.toString());
-                        if (formError) setFormError('');
-                      }}
-                      activeOpacity={0.7}
-                    >
-                      <Text
-                        style={[
-                          styles.quickChipText,
-                          active && styles.quickChipTextActive,
-                        ]}
-                      >
-                        ${val}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-
-              <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>
-                DÍA DE CORTE (1-31)
-              </Text>
-              <Text style={styles.hint}>
-                Cada mes, en este día se reinicia el presupuesto.
-              </Text>
-              <TextInput
-                style={styles.dayInput}
-                value={cutoffDayText}
-                onChangeText={(t) => {
-                  setCutoffDayText(t.replace(/[^0-9]/g, '').slice(0, 2));
-                  if (formError) setFormError('');
-                }}
-                placeholder="1"
-                placeholderTextColor={darkColors.textMuted}
-                keyboardType="number-pad"
-                keyboardAppearance="dark"
-                maxLength={2}
-              />
-
-              {formError !== '' && <Text style={styles.errorText}>{formError}</Text>}
-
-              <View style={styles.formButtons}>
-                <PrimaryButton
-                  title={submitting ? 'Guardando...' : 'Guardar presupuesto'}
-                  icon="check-circle-outline"
-                  onPress={handleSave}
-                  loading={submitting}
-                />
-
-                {config && (
-                  <TouchableOpacity
-                    style={styles.cancelButton}
-                    onPress={cancelEdit}
-                    disabled={submitting}
-                  >
-                    <Text style={styles.cancelText}>Cancelar</Text>
-                  </TouchableOpacity>
-                )}
-              </View>
-            </View>
-          </ScrollView>
-        </KeyboardAvoidingView>
-      </SafeAreaView>
-    );
-  }
-
-  // ─── Budget overview ──────────────────────────────────
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <AmbientGlow height={300} intensity={0.8} />
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <AmbientGlow height={220} intensity={0.7} />
 
-        {/* ── Header ───────────────────────────────── */}
-        <View style={styles.header}>
-          <TabHeader title="Crédito" subtitle={getPeriodLabel(period)} />
-        </View>
-
-        {/* ── Summary Card ────────────────────────── */}
-        <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>
-            {isOverBudget ? 'TE PASAS POR' : 'DISPONIBLE'}
-          </Text>
-          <Text
-            style={[
-              styles.summaryAmount,
-              isOverBudget ? styles.summaryAmountNegative : styles.summaryAmountPositive,
-            ]}
-          >
-            {formatCurrency(remaining)}
-          </Text>
-          <Text style={styles.summarySubtitle}>de {formatCurrency(config.amount)}</Text>
-
-          <View style={styles.progressTrack}>
-            <View
-              style={[
-                styles.progressFill,
-                { width: `${progress * 100}%` },
-                isOverBudget && styles.progressFillOver,
-              ]}
+          <View style={styles.header}>
+            <TabHeader
+              title="Crédito"
+              subtitle={config ? 'Editar presupuesto' : 'Nuevo presupuesto'}
             />
           </View>
 
-          <View style={styles.summaryMeta}>
-            <View style={styles.metaItem}>
-              <MaterialCommunityIcons
-                name="receipt-outline"
-                size={14}
-                color={darkColors.textMuted}
+          <View style={styles.form}>
+            <Text style={styles.sectionLabel}>MONTO POR PERÍODO</Text>
+            <View style={styles.amountRow}>
+              <Text style={styles.currencySymbol}>$</Text>
+              <TextInput
+                style={styles.amountInput}
+                value={amountText}
+                onChangeText={(t) => {
+                  const cleaned = t.replace(/[^0-9.]/g, '');
+                  const parts = cleaned.split('.');
+                  if (parts.length > 2) return;
+                  if (parts[1]?.length > 2) return;
+                  setAmountText(cleaned);
+                  if (formError) setFormError('');
+                }}
+                placeholder="0"
+                placeholderTextColor={darkColors.textMuted}
+                keyboardType="number-pad"
+                keyboardAppearance="dark"
+                autoFocus
               />
-              <Text style={styles.metaText}>{formatCurrency(spent)} gastado</Text>
             </View>
-            <View style={styles.metaDivider} />
-            <View style={styles.metaItem}>
-              <MaterialCommunityIcons
-                name="calendar-blank-outline"
-                size={14}
-                color={darkColors.textMuted}
+
+            {/* Quick amounts */}
+            <View style={styles.quickRow}>
+              {QUICK_AMOUNTS.map((val) => {
+                const active = currentAmount === val;
+                return (
+                  <TouchableOpacity
+                    key={val}
+                    style={[styles.quickChip, active && styles.quickChipActive]}
+                    onPress={() => {
+                      setAmountText(val.toString());
+                      if (formError) setFormError('');
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text
+                      style={[
+                        styles.quickChipText,
+                        active && styles.quickChipTextActive,
+                      ]}
+                    >
+                      ${val}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>
+              DÍA DE CORTE (1-31)
+            </Text>
+            <Text style={styles.hint}>
+              Cada mes, en este día se reinicia el presupuesto.
+            </Text>
+            <TextInput
+              style={styles.dayInput}
+              value={cutoffDayText}
+              onChangeText={(t) => {
+                setCutoffDayText(t.replace(/[^0-9]/g, '').slice(0, 2));
+                if (formError) setFormError('');
+              }}
+              placeholder="1"
+              placeholderTextColor={darkColors.textMuted}
+              keyboardType="number-pad"
+              keyboardAppearance="dark"
+              maxLength={2}
+            />
+
+            {formError !== '' && <Text style={styles.errorText}>{formError}</Text>}
+
+            <View style={styles.formButtons}>
+              <PrimaryButton
+                title={submitting ? 'Guardando...' : 'Guardar presupuesto'}
+                icon="check-circle-outline"
+                onPress={handleSave}
+                loading={submitting}
               />
-              <Text style={styles.metaText}>
-                {periodTransactions.length}{' '}
-                {periodTransactions.length === 1 ? 'gasto' : 'gastos'}
-              </Text>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={() => router.back()}
+                disabled={submitting}
+              >
+                <Text style={styles.cancelText}>Cancelar</Text>
+              </TouchableOpacity>
             </View>
           </View>
-
-          {isOverBudget && (
-            <Text style={styles.overBudgetText}>Te pasaste del presupuesto</Text>
-          )}
-        </View>
-
-        {/* ── Essential action: editar presupuesto ─── */}
-        <View style={styles.ctaWrap}>
-          <PrimaryButton
-            title="Editar presupuesto"
-            icon="pencil-outline"
-            onPress={openEdit}
-          />
-        </View>
-
-        <View style={{ height: 40 }} />
-      </ScrollView>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -395,83 +270,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
-  },
-
-  // Summary Card
-  summaryCard: {
-    marginHorizontal: spacing.xl,
-    padding: spacing.xl,
-    alignItems: 'center',
-  },
-  summaryLabel: {
-    ...typography.label,
-    color: darkColors.textSecondary,
-    letterSpacing: 1.2,
-  },
-  summaryAmount: {
-    fontSize: 40,
-    fontWeight: '700',
-    letterSpacing: -0.5,
-    marginTop: spacing.sm,
-  },
-  summaryAmountPositive: {
-    color: darkColors.green,
-  },
-  summaryAmountNegative: {
-    color: darkColors.red,
-  },
-  summarySubtitle: {
-    ...typography.caption,
-    color: darkColors.textMuted,
-    marginTop: spacing.xs,
-  },
-  progressTrack: {
-    width: '100%',
-    height: 8,
-    borderRadius: borderRadius.full,
-    backgroundColor: darkColors.surfaceElevated,
-    marginTop: spacing.lg,
-    overflow: 'hidden',
-  },
-  progressFill: {
-    height: '100%',
-    borderRadius: borderRadius.full,
-    backgroundColor: darkColors.green,
-  },
-  progressFillOver: {
-    backgroundColor: darkColors.red,
-  },
-  summaryMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: spacing.lg,
-    gap: spacing.md,
-  },
-  metaItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  metaText: {
-    ...typography.small,
-    color: darkColors.textMuted,
-  },
-  metaDivider: {
-    width: 1,
-    height: 14,
-    backgroundColor: darkColors.divider,
-  },
-  overBudgetText: {
-    ...typography.small,
-    color: darkColors.red,
-    marginTop: spacing.sm,
-    fontWeight: '600',
-  },
-
-  // Essential CTA
-  ctaWrap: {
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.md,
   },
 
   // Error State

@@ -1,9 +1,17 @@
 import { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+} from 'react-native';
 import { router } from 'expo-router';
-import { colors, typography, spacing, borderRadius, shadows } from '../src/theme';
-import GoldButton from '../src/components/GoldButton';
-import GoldInput from '../src/components/GoldInput';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { darkColors, typography, spacing, borderRadius, shadows } from '../src/theme';
 import { createGroup, joinGroup, isValidGroupCode } from '../src/services/group';
 import { saveGroupId, saveGroupName, getGroupId } from '../src/utils/storage';
 
@@ -76,6 +84,16 @@ export default function SetupScreen() {
     }
   }
 
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <View style={styles.centerContent}>
+          <ActivityIndicator size="large" color={darkColors.red} />
+        </View>
+      </View>
+    );
+  }
+
   // ─── Choose mode screen ───────────────────────────────
   if (mode === 'choose') {
     return (
@@ -85,20 +103,22 @@ export default function SetupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoSection}>
-          <View style={styles.goldBar} />
-          <Text style={styles.title}>Santander</Text>
-          <Text style={styles.subtitle}>Fiesta Awards</Text>
-          <Text style={styles.tagline}>Controla tus gastos en tiempo real</Text>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>S</Text>
+          </View>
+          <Text style={styles.title}>Santander Fiesta Awards</Text>
+          <Text style={styles.tagline}>Controla tus gastos en tiempo real, entre 2 celulares</Text>
         </View>
 
         <View style={styles.card}>
-          <GoldButton
+          <PrimaryButton
             title="CREAR NUEVO GRUPO"
             onPress={() => {
               setGroupCode('');
               setCodeError('');
               setMode('create');
             }}
+            submitting={submitting}
           />
         </View>
 
@@ -109,7 +129,7 @@ export default function SetupScreen() {
         </View>
 
         <View style={styles.card}>
-          <GoldButton
+          <PrimaryButton
             title="UNIRSE A UN GRUPO"
             variant="outline"
             onPress={() => {
@@ -132,12 +152,11 @@ export default function SetupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoSection}>
-          <View style={styles.goldBar} />
           <Text style={styles.subtitle}>Nuevo Grupo</Text>
         </View>
 
         <View style={styles.card}>
-          <GoldInput
+          <DarkInput
             label="Nombre del grupo"
             value={groupName}
             onChangeText={setGroupName}
@@ -146,23 +165,25 @@ export default function SetupScreen() {
           />
 
           <View style={styles.createInfo}>
+            <MaterialCommunityIcons
+              name="information-outline"
+              size={18}
+              color={darkColors.textMuted}
+            />
             <Text style={styles.createInfoText}>
               Se generará un código único para compartir con la otra persona.
             </Text>
           </View>
 
-          <GoldButton
+          <PrimaryButton
             title="CREAR GRUPO"
             onPress={handleCreateGroup}
-            loading={submitting}
+            submitting={submitting}
           />
 
-          <GoldButton
-            title="← Volver"
-            variant="ghost"
-            onPress={() => setMode('choose')}
-            style={styles.backButton}
-          />
+          <TouchableOpacity style={styles.backButton} onPress={() => setMode('choose')}>
+            <Text style={styles.backButtonText}>← Volver</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     );
@@ -176,12 +197,11 @@ export default function SetupScreen() {
       keyboardShouldPersistTaps="handled"
     >
       <View style={styles.logoSection}>
-        <View style={styles.goldBar} />
         <Text style={styles.subtitle}>Unirse a Grupo</Text>
       </View>
 
       <View style={styles.card}>
-        <GoldInput
+        <DarkInput
           label="Código del grupo"
           value={groupCode}
           onChangeText={(text) => {
@@ -195,35 +215,123 @@ export default function SetupScreen() {
         />
 
         <View style={styles.createInfo}>
+          <MaterialCommunityIcons
+            name="information-outline"
+            size={18}
+            color={darkColors.textMuted}
+          />
           <Text style={styles.createInfoText}>
             Pídele a la otra persona el código de su grupo.
           </Text>
         </View>
 
-        <GoldButton
+        <PrimaryButton
           title="UNIRSE AL GRUPO"
           onPress={handleJoinGroup}
-          loading={submitting}
+          submitting={submitting}
         />
 
-        <GoldButton
-          title="← Volver"
-          variant="ghost"
+        <TouchableOpacity
+          style={styles.backButton}
           onPress={() => {
             setMode('choose');
             setCodeError('');
           }}
-          style={styles.backButton}
-        />
+        >
+          <Text style={styles.backButtonText}>← Volver</Text>
+        </TouchableOpacity>
       </View>
     </ScrollView>
   );
 }
 
+// ─── Primary Button ─────────────────────────────────────
+function PrimaryButton({
+  title,
+  onPress,
+  variant = 'solid',
+  submitting = false,
+}: {
+  title: string;
+  onPress: () => void;
+  variant?: 'solid' | 'outline';
+  submitting?: boolean;
+}) {
+  const solid = variant === 'solid';
+  return (
+    <TouchableOpacity
+      style={[
+        styles.primaryButton,
+        solid ? styles.primaryButtonSolid : styles.primaryButtonOutline,
+        submitting && styles.primaryButtonDisabled,
+      ]}
+      onPress={onPress}
+      disabled={submitting}
+      activeOpacity={0.85}
+    >
+      {submitting ? (
+        <ActivityIndicator color={solid ? '#FFFFFF' : darkColors.red} size="small" />
+      ) : (
+        <Text
+          style={[
+            styles.primaryButtonText,
+            solid ? styles.primaryButtonTextSolid : styles.primaryButtonTextOutline,
+          ]}
+        >
+          {title}
+        </Text>
+      )}
+    </TouchableOpacity>
+  );
+}
+
+// ─── Dark Input ─────────────────────────────────────────
+function DarkInput({
+  label,
+  value,
+  onChangeText,
+  placeholder,
+  maxLength,
+  autoCapitalize,
+  error,
+}: {
+  label: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  placeholder?: string;
+  maxLength?: number;
+  autoCapitalize?: 'none' | 'characters';
+  error?: string;
+}) {
+  return (
+    <View style={styles.inputGroup}>
+      <Text style={styles.inputLabel}>{label.toUpperCase()}</Text>
+      <TextInput
+        style={[styles.textInput, error ? styles.textInputError : null]}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={darkColors.textMuted}
+        maxLength={maxLength}
+        autoCapitalize={autoCapitalize ?? 'none'}
+        autoCorrect={false}
+        keyboardAppearance="dark"
+      />
+      {error ? <Text style={styles.inputError}>{error}</Text> : null}
+    </View>
+  );
+}
+
+// ─── Styles ─────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: darkColors.background,
+  },
+  centerContent: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   content: {
     flexGrow: 1,
@@ -235,33 +343,42 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxxl,
   },
-  goldBar: {
-    width: 60,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.gold,
-    marginBottom: spacing.xxl,
+  avatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    backgroundColor: darkColors.red,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: spacing.lg,
+    ...shadows.md,
+  },
+  avatarText: {
+    fontSize: 30,
+    fontWeight: '700',
+    color: '#FFFFFF',
   },
   title: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    letterSpacing: 2,
+    ...typography.h2,
+    color: darkColors.textPrimary,
+    textAlign: 'center',
   },
   subtitle: {
     ...typography.h2,
-    color: colors.gold,
-    marginTop: spacing.xs,
+    color: darkColors.textPrimary,
     marginBottom: spacing.sm,
   },
   tagline: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     marginTop: spacing.sm,
+    textAlign: 'center',
+    lineHeight: 22,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: darkColors.surface,
     borderRadius: borderRadius.lg,
-    padding: spacing.xxl,
+    padding: spacing.xl,
     ...shadows.md,
     gap: spacing.lg,
   },
@@ -274,25 +391,90 @@ const styles = StyleSheet.create({
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: colors.divider,
+    backgroundColor: darkColors.divider,
   },
   dividerText: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
   },
   createInfo: {
-    backgroundColor: colors.surfaceElevated,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: darkColors.surfaceElevated,
     borderRadius: borderRadius.sm,
     padding: spacing.md,
-    borderLeftWidth: 3,
-    borderLeftColor: colors.gold,
   },
   createInfoText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     lineHeight: 20,
+    flex: 1,
   },
   backButton: {
-    marginTop: spacing.sm,
+    alignSelf: 'center',
+    padding: spacing.sm,
+  },
+  backButtonText: {
+    ...typography.body,
+    color: darkColors.textSecondary,
+  },
+
+  // Primary button
+  primaryButton: {
+    height: 54,
+    borderRadius: borderRadius.md,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  primaryButtonSolid: {
+    backgroundColor: darkColors.red,
+    ...shadows.md,
+  },
+  primaryButtonOutline: {
+    borderWidth: 1.5,
+    borderColor: darkColors.red,
+    backgroundColor: 'transparent',
+  },
+  primaryButtonDisabled: {
+    opacity: 0.5,
+  },
+  primaryButtonText: {
+    ...typography.bodyBold,
+    fontSize: 15,
+    letterSpacing: 1,
+  },
+  primaryButtonTextSolid: {
+    color: '#FFFFFF',
+  },
+  primaryButtonTextOutline: {
+    color: darkColors.red,
+  },
+
+  // Input
+  inputGroup: {
+    gap: spacing.sm,
+  },
+  inputLabel: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1.2,
+  },
+  textInput: {
+    height: 52,
+    backgroundColor: darkColors.surfaceElevated,
+    borderWidth: 1,
+    borderColor: darkColors.divider,
+    borderRadius: borderRadius.md,
+    paddingHorizontal: spacing.lg,
+    ...typography.body,
+    color: darkColors.textPrimary,
+  },
+  textInputError: {
+    borderColor: darkColors.red,
+  },
+  inputError: {
+    ...typography.small,
+    color: darkColors.red,
   },
 });

@@ -3,14 +3,14 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StyleSheet } from 'react-native';
-import { colors } from '../src/theme';
+import { darkColors } from '../src/theme';
 
 export default function RootLayout() {
   return (
     <View style={styles.root}>
       <GestureHandlerRootView style={styles.flex}>
         <SafeAreaProvider>
-          <StatusBar style="dark" />
+          <StatusBar style="light" />
           <Slot />
         </SafeAreaProvider>
       </GestureHandlerRootView>
@@ -21,7 +21,7 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: darkColors.background,
   },
   flex: {
     flex: 1,

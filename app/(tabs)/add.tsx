@@ -12,11 +12,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Timestamp } from '@react-native-firebase/firestore';
 import { addTransaction } from '../../src/services/transactions';
 import { getGroupId } from '../../src/utils/storage';
-import { colors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 
@@ -138,7 +138,11 @@ export default function AddTransactionScreen() {
           {/* ── Header ─────────────────────────── */}
           <View style={styles.header}>
             <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
-              <Ionicons name="arrow-back" size={24} color={colors.textPrimary} />
+              <MaterialCommunityIcons
+                name="arrow-left"
+                size={24}
+                color={darkColors.textPrimary}
+              />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Nuevo gasto</Text>
             <View style={{ width: 32 }} />
@@ -162,14 +166,13 @@ export default function AddTransactionScreen() {
                   if (errors.amount) setErrors((e) => ({ ...e, amount: '' }));
                 }}
                 placeholder="0.00"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={darkColors.textMuted}
                 keyboardType="decimal-pad"
+                keyboardAppearance="dark"
                 autoFocus
               />
             </View>
-            {errors.amount && (
-              <Text style={styles.errorText}>{errors.amount}</Text>
-            )}
+            {errors.amount && <Text style={styles.errorText}>{errors.amount}</Text>}
             {/* Quick amounts */}
             <View style={styles.quickRow}>
               {[50, 100, 200, 500, 1000].map((val) => (
@@ -180,6 +183,7 @@ export default function AddTransactionScreen() {
                     parseAmount(amountText) === val && styles.quickChipActive,
                   ]}
                   onPress={() => setAmountText(val.toString() + '.00')}
+                  activeOpacity={0.7}
                 >
                   <Text
                     style={[
@@ -209,10 +213,11 @@ export default function AddTransactionScreen() {
                 if (errors.description) setErrors((e) => ({ ...e, description: '' }));
               }}
               placeholder="Ej: Súper semanal"
-              placeholderTextColor={colors.textMuted}
+              placeholderTextColor={darkColors.textMuted}
               returnKeyType="done"
               onSubmitEditing={handleSubmit}
               maxLength={60}
+              keyboardAppearance="dark"
             />
           </View>
 
@@ -223,8 +228,13 @@ export default function AddTransactionScreen() {
               <TouchableOpacity
                 style={styles.dateArrow}
                 onPress={() => changeDay(-1)}
+                activeOpacity={0.7}
               >
-                <Ionicons name="chevron-back" size={22} color={colors.gold} />
+                <MaterialCommunityIcons
+                  name="chevron-left"
+                  size={22}
+                  color={darkColors.red}
+                />
               </TouchableOpacity>
               <View style={styles.dateCenter}>
                 <Text style={styles.dateText}>{dateLabelCapitalized}</Text>
@@ -233,8 +243,13 @@ export default function AddTransactionScreen() {
               <TouchableOpacity
                 style={styles.dateArrow}
                 onPress={() => changeDay(1)}
+                activeOpacity={0.7}
               >
-                <Ionicons name="chevron-forward" size={22} color={colors.gold} />
+                <MaterialCommunityIcons
+                  name="chevron-right"
+                  size={22}
+                  color={darkColors.red}
+                />
               </TouchableOpacity>
             </View>
           </View>
@@ -250,10 +265,10 @@ export default function AddTransactionScreen() {
               disabled={!canSubmit || submitting}
               activeOpacity={0.85}
             >
-              <Ionicons
-                name="checkmark-circle-outline"
+              <MaterialCommunityIcons
+                name="check-circle-outline"
                 size={22}
-                color={colors.textOnGold}
+                color="#FFFFFF"
               />
               <Text style={styles.submitText}>
                 {submitting ? 'Registrando...' : 'REGISTRAR GASTO'}
@@ -270,13 +285,13 @@ export default function AddTransactionScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: darkColors.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: spacing.huge,
+    paddingBottom: 160,
   },
   centerContent: {
     flex: 1,
@@ -285,7 +300,7 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
   },
 
   // Header
@@ -301,7 +316,7 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
 
   // Amount
@@ -312,7 +327,7 @@ const styles = StyleSheet.create({
   },
   amountLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: darkColors.textSecondary,
     letterSpacing: 2,
     marginBottom: spacing.sm,
   },
@@ -324,17 +339,17 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 32,
     fontWeight: '700',
-    color: colors.gold,
+    color: darkColors.textPrimary,
     marginRight: spacing.xs,
   },
   amountInput: {
     fontSize: 40,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
     minWidth: 180,
     textAlign: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: colors.goldLight,
+    borderBottomColor: darkColors.red,
     paddingBottom: spacing.sm,
   },
   quickRow: {
@@ -348,20 +363,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
+    backgroundColor: darkColors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: darkColors.divider,
   },
   quickChipActive: {
-    backgroundColor: colors.gold,
-    borderColor: colors.gold,
+    backgroundColor: darkColors.red,
+    borderColor: darkColors.red,
   },
   quickChipText: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
   },
   quickChipTextActive: {
-    color: colors.textOnGold,
+    color: '#FFFFFF',
     fontWeight: '600',
   },
 
@@ -372,7 +387,7 @@ const styles = StyleSheet.create({
   },
   sectionLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: darkColors.textSecondary,
     letterSpacing: 1.5,
     marginBottom: spacing.md,
   },
@@ -380,13 +395,13 @@ const styles = StyleSheet.create({
   // Text Input
   textInput: {
     height: 52,
-    backgroundColor: colors.surface,
+    backgroundColor: darkColors.surface,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: darkColors.divider,
     borderRadius: borderRadius.md,
     paddingHorizontal: spacing.lg,
     ...typography.body,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
 
   // Date
@@ -394,11 +409,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: colors.surface,
+    backgroundColor: darkColors.surface,
     borderRadius: borderRadius.md,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: darkColors.divider,
     paddingVertical: spacing.md,
+    ...shadows.sm,
   },
   dateArrow: {
     paddingHorizontal: spacing.xl,
@@ -410,11 +426,11 @@ const styles = StyleSheet.create({
   },
   dateText: {
     ...typography.bodyBold,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
   dateYear: {
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
     marginTop: 2,
   },
 
@@ -427,7 +443,7 @@ const styles = StyleSheet.create({
   submitButton: {
     width: '100%',
     height: 56,
-    backgroundColor: colors.gold,
+    backgroundColor: darkColors.red,
     borderRadius: borderRadius.md,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -440,21 +456,15 @@ const styles = StyleSheet.create({
   },
   submitText: {
     ...typography.bodyBold,
-    color: colors.textOnGold,
+    color: '#FFFFFF',
     fontSize: 16,
     letterSpacing: 1,
-  },
-  syncHint: {
-    ...typography.small,
-    color: colors.textMuted,
-    marginTop: spacing.md,
-    textAlign: 'center',
   },
 
   // Error
   errorText: {
     ...typography.small,
-    color: colors.error,
+    color: darkColors.red,
     marginBottom: spacing.sm,
   },
 });

@@ -10,12 +10,11 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId, getGroupName } from '../../src/utils/storage';
-import { getCurrentMonthLabel } from '../../src/utils/date';
-import { colors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Transaction } from '../../src/types';
@@ -35,7 +34,16 @@ function formatDate(date: Date): string {
   return format(date, 'd MMM', { locale: es });
 }
 
-// ─── Main Dashboard ─────────────────────────────────────
+/** Payment due date: cutoff day of the current month, e.g. "05/07" */
+function formatPaymentDue(cutoffDay: number): string {
+  const now = new Date();
+  // Clamp to the last day of the month (e.g. day 31 in February)
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+  const day = Math.min(cutoffDay, lastDay);
+  return format(new Date(now.getFullYear(), now.getMonth(), day), 'dd/MM');
+}
+
+// ─── Main Dashboard (Home) ──────────────────────────────
 export default function DashboardScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
@@ -64,9 +72,7 @@ export default function DashboardScreen() {
   const {
     config: budgetConfig,
     loading: budgetLoading,
-    spent: periodSpent,
     remaining: budgetRemaining,
-    periodTransactions,
   } = useBudget(groupId, transactions);
 
   const loading = !storageLoaded || txLoading || budgetLoading;
@@ -83,7 +89,6 @@ export default function DashboardScreen() {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth();
-  const monthLabel = getCurrentMonthLabel();
 
   const monthTotal = useMemo(
     () => getMonthTotal(year, month),
@@ -95,21 +100,12 @@ export default function DashboardScreen() {
     [getRecentTransactions]
   );
 
-  const transactionCount = useMemo(
-    () =>
-      transactions.filter((t) => {
-        const d = t.date;
-        return d.getFullYear() === year && d.getMonth() === month;
-      }).length,
-    [transactions, year, month]
-  );
-
   // ─── Loading state ──────────────────────────────────
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.gold} />
+          <ActivityIndicator size="large" color={darkColors.red} />
         </View>
       </SafeAreaView>
     );
@@ -120,7 +116,11 @@ export default function DashboardScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centerContent}>
-          <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
+          <MaterialCommunityIcons
+            name="cloud-off-outline"
+            size={48}
+            color={darkColors.textMuted}
+          />
           <Text style={styles.errorTitle}>Error de conexión</Text>
           <Text style={styles.errorSubtitle}>{error.message}</Text>
         </View>
@@ -128,12 +128,13 @@ export default function DashboardScreen() {
     );
   }
 
-  // ─── Empty state (no transactions) ────────────────
-  const hasBudget = budgetConfig !== null;
-  const isFirstTime = hasBudget
-    ? periodSpent === 0 && periodTransactions.length === 0
-    : monthTotal === 0 && transactionCount === 0;
-  const isOverBudget = hasBudget && budgetRemaining < 0;
+  // ─── Derived values ────────────────────────────────
+  const limit = budgetConfig?.amount ?? null;
+  const limitPercent =
+    limit && limit > 0 ? Math.min(100, (monthTotal / limit) * 100) : 0;
+  const isOverBudget = budgetConfig !== null && budgetRemaining < 0;
+  const available = budgetConfig !== null ? budgetRemaining : null;
+  const paymentDue = budgetConfig ? formatPaymentDue(budgetConfig.cutoffDay) : null;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -145,105 +146,98 @@ export default function DashboardScreen() {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            tintColor={colors.gold}
-            colors={[colors.gold]}
+            tintColor={darkColors.red}
+            colors={[darkColors.red]}
           />
         }
       >
-        {/* ── Header ───────────────────────────────── */}
-        <View style={styles.header}>
-          <Text style={styles.greeting}>Tus gastos</Text>
-          <Text style={styles.groupName}>{groupName || 'Grupo'}</Text>
-          <Text style={styles.monthLabel}>{monthLabel}</Text>
+        {/* ── Account Top Bar ───────────────────────── */}
+        <View style={styles.topBar}>
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>S</Text>
+          </View>
+          <View style={styles.accountInfo}>
+            <Text style={styles.accountTitle} numberOfLines={1}>
+              {groupName || 'Santander Fiesta'}
+            </Text>
+            <Text style={styles.accountSubtitle}>Tarjeta Fiesta Awards</Text>
+          </View>
+          <View style={styles.currencyPill}>
+            <Text style={styles.currencyPillText}>MXN</Text>
+          </View>
         </View>
 
-        {/* ── Summary Card ────────────────────────── */}
-        <View style={styles.summaryCard}>
-          {hasBudget ? (
-            <>
-              <Text style={styles.summaryLabel}>TE QUEDA</Text>
-              <Text
-                style={[
-                  styles.summaryAmount,
-                  isOverBudget && styles.summaryAmountNegative,
-                ]}
-              >
-                {formatCurrency(budgetRemaining)}
-              </Text>
-              <View style={styles.spentRow}>
-                <Text style={styles.spentLabel}>GASTADO</Text>
-                <Text style={styles.spentAmount}>{formatCurrency(periodSpent)}</Text>
-              </View>
-              <View style={styles.summaryMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>
-                    {periodTransactions.length}{' '}
-                    {periodTransactions.length === 1 ? 'gasto' : 'gastos'}
-                  </Text>
-                </View>
-                <View style={styles.metaDivider} />
-                <View style={styles.metaItem}>
-                  <Ionicons name="people-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>Tiempo real</Text>
-                </View>
-              </View>
-            </>
+        {/* ── Balance Block (Spent this month) ──────── */}
+        <View style={styles.balanceBlock}>
+          <Text style={styles.balanceLabel}>SPENT THIS MONTH</Text>
+          <Text style={styles.balanceAmount}>{formatCurrency(monthTotal)}</Text>
+          {limit !== null ? (
+            <Text style={styles.balanceLimit}>
+              {Math.round(limitPercent)}% of {formatCurrency(limit)} limit
+            </Text>
           ) : (
-            <>
-              <Text style={styles.summaryLabel}>GASTO TOTAL</Text>
-              <Text style={styles.summaryAmount}>{formatCurrency(monthTotal)}</Text>
-              <View style={styles.summaryMeta}>
-                <View style={styles.metaItem}>
-                  <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>
-                    {transactionCount} {transactionCount === 1 ? 'gasto' : 'gastos'}
-                  </Text>
-                </View>
-                <View style={styles.metaDivider} />
-                <View style={styles.metaItem}>
-                  <Ionicons name="people-outline" size={14} color={colors.textMuted} />
-                  <Text style={styles.metaText}>Tiempo real</Text>
-                </View>
-              </View>
-            </>
+            <Text style={styles.balanceLimit}>Define tu límite en Credit</Text>
           )}
         </View>
 
-        {/* ── Recent Transactions ─────────────────── */}
-        {!isFirstTime && recentTransactions.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Últimos gastos</Text>
-            <View style={styles.recentList}>
-              {recentTransactions.map((tx) => (
-                <TransactionRow key={tx.id} transaction={tx} />
-              ))}
-            </View>
+        {/* ── Quick Info Widgets ────────────────────── */}
+        <View style={styles.widgetsRow}>
+          <View style={styles.widget}>
+            <Text style={styles.widgetLabel}>Available</Text>
+            <Text
+              style={[
+                styles.widgetValue,
+                { color: isOverBudget ? darkColors.red : darkColors.green },
+              ]}
+              numberOfLines={1}
+              adjustsFontSizeToFit
+            >
+              {available !== null ? formatCurrency(available) : '—'}
+            </Text>
           </View>
-        )}
+          <View style={styles.widget}>
+            <Text style={styles.widgetLabel}>Payment due</Text>
+            <Text style={styles.widgetValue}>{paymentDue ?? '—'}</Text>
+          </View>
+        </View>
 
-        {/* ── Empty State ─────────────────────────── */}
-        {isFirstTime && (
+        {/* ── Divider ───────────────────────────────── */}
+        <View style={styles.divider} />
+
+        {/* ── Recent Activity ───────────────────────── */}
+        <View style={styles.activityHeader}>
+          <Text style={styles.activityTitle}>Recent activity</Text>
+          {recentTransactions.length > 0 && (
+            <TouchableOpacity
+              onPress={() => router.push('/history')}
+              hitSlop={8}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.seeAll}>See all</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {recentTransactions.length > 0 ? (
+          <View style={styles.activityList}>
+            {recentTransactions.map((tx) => (
+              <TransactionRow key={tx.id} transaction={tx} />
+            ))}
+          </View>
+        ) : (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <Ionicons name="wallet-outline" size={48} color={colors.gold} />
-            </View>
-            <Text style={styles.emptyTitle}>Sin gastos este mes</Text>
+            <MaterialCommunityIcons
+              name="receipt-outline"
+              size={48}
+              color={darkColors.textMuted}
+            />
+            <Text style={styles.emptyText}>No expenses yet this month</Text>
           </View>
         )}
 
-        {/* Bottom spacing for FAB */}
-        <View style={{ height: 80 }} />
+        {/* Bottom spacing for floating nav */}
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* ── Floating Action Button ──────────────────── */}
-      <TouchableOpacity
-        style={styles.fab}
-        activeOpacity={0.85}
-        onPress={() => router.push('/(tabs)/add')}
-      >
-        <Ionicons name="add" size={28} color={colors.textOnGold} />
-      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -253,7 +247,11 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <View style={txStyles.row}>
       <View style={txStyles.iconWrap}>
-        <Ionicons name="receipt-outline" size={20} color={colors.gold} />
+        <MaterialCommunityIcons
+          name="receipt-outline"
+          size={20}
+          color={darkColors.textSecondary}
+        />
       </View>
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
@@ -271,8 +269,8 @@ const txStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: darkColors.divider,
     gap: spacing.md,
   },
   iconWrap: {
@@ -281,23 +279,23 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.goldLight + '40',
+    backgroundColor: darkColors.surfaceElevated,
   },
   info: {
     flex: 1,
   },
   description: {
     ...typography.body,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
   date: {
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
     marginTop: 2,
   },
   amount: {
     ...typography.bodyBold,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
 });
 
@@ -305,13 +303,13 @@ const txStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: darkColors.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 160,
   },
   centerContent: {
     flex: 1,
@@ -320,157 +318,159 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
-  // Header
-  header: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.xl,
-    paddingBottom: spacing.md,
-  },
-  greeting: {
-    ...typography.label,
-    color: colors.textSecondary,
-    letterSpacing: 1.5,
-  },
-  groupName: {
-    ...typography.h1,
-    color: colors.textPrimary,
-    marginTop: spacing.xs,
-  },
-  monthLabel: {
-    ...typography.body,
-    color: colors.gold,
-    marginTop: spacing.xs,
-  },
-
-  // Summary Card
-  summaryCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.xxl,
-    borderRadius: borderRadius.lg,
-    padding: spacing.xxl,
-    alignItems: 'center',
-    ...shadows.md,
-  },
-  summaryLabel: {
-    ...typography.label,
-    color: colors.textSecondary,
-    letterSpacing: 1.5,
-  },
-  summaryAmount: {
-    fontSize: 40,
-    fontWeight: '700',
-    color: colors.gold,
-    marginTop: spacing.sm,
-    letterSpacing: -0.5,
-  },
-  summaryAmountNegative: {
-    color: colors.error,
-  },
-  spentRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: spacing.sm,
-    marginTop: spacing.md,
-  },
-  spentLabel: {
-    ...typography.label,
-    color: colors.textMuted,
-    letterSpacing: 1,
-  },
-  spentAmount: {
-    ...typography.bodyBold,
-    color: colors.textSecondary,
-  },
-  summaryMeta: {
+  // Account top bar
+  topBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: spacing.lg,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
     gap: spacing.md,
   },
-  metaItem: {
-    flexDirection: 'row',
+  avatar: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: darkColors.red,
+    justifyContent: 'center',
     alignItems: 'center',
-    gap: spacing.xs,
+    ...shadows.sm,
   },
-  metaText: {
+  avatarText: {
+    fontSize: 22,
+    fontWeight: '700',
+    color: '#FFFFFF',
+  },
+  accountInfo: {
+    flex: 1,
+  },
+  accountTitle: {
+    ...typography.bodyBold,
+    color: darkColors.textPrimary,
+    fontSize: 17,
+  },
+  accountSubtitle: {
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textSecondary,
+    marginTop: 2,
   },
-  metaDivider: {
-    width: 1,
-    height: 14,
-    backgroundColor: colors.divider,
+  currencyPill: {
+    backgroundColor: darkColors.pill,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  currencyPillText: {
+    ...typography.small,
+    color: darkColors.textPrimary,
+    fontWeight: '600',
   },
 
-  // Sections
-  section: {
-    marginTop: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
+  // Balance block
+  balanceBlock: {
+    alignItems: 'center',
+    paddingTop: spacing.xxl,
+    paddingBottom: spacing.lg,
   },
-  sectionTitle: {
+  balanceLabel: {
     ...typography.label,
-    color: colors.textSecondary,
-    letterSpacing: 1,
+    color: darkColors.textSecondary,
+    letterSpacing: 1.2,
+  },
+  balanceAmount: {
+    fontSize: 44,
+    fontWeight: '700',
+    color: darkColors.textPrimary,
+    letterSpacing: -0.5,
+    marginTop: spacing.sm,
+  },
+  balanceLimit: {
+    ...typography.small,
+    color: darkColors.textSecondary,
+    marginTop: spacing.xs,
+  },
+
+  // Widgets
+  widgetsRow: {
+    flexDirection: 'row',
+    gap: spacing.md,
+    paddingHorizontal: spacing.xl,
+  },
+  widget: {
+    flex: 1,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    padding: spacing.lg,
+    ...shadows.sm,
+  },
+  widgetLabel: {
+    ...typography.small,
+    color: darkColors.textSecondary,
+  },
+  widgetValue: {
+    fontSize: 24,
+    fontWeight: '700',
+    color: darkColors.textPrimary,
+    marginTop: spacing.xs,
+    letterSpacing: -0.3,
+  },
+
+  // Divider
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    backgroundColor: darkColors.divider,
+    marginHorizontal: spacing.xl,
+    marginTop: spacing.xl,
+  },
+
+  // Recent activity
+  activityHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.xl,
     marginBottom: spacing.md,
   },
-  recentList: {
-    backgroundColor: colors.surface,
+  activityTitle: {
+    ...typography.h3,
+    color: darkColors.textPrimary,
+    fontWeight: '700',
+  },
+  seeAll: {
+    ...typography.bodyBold,
+    color: darkColors.red,
+    fontSize: 14,
+  },
+  activityList: {
+    backgroundColor: darkColors.surface,
+    marginHorizontal: spacing.xl,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     ...shadows.sm,
   },
 
-  // Empty State
+  // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
     paddingTop: spacing.huge,
+    gap: spacing.md,
   },
-  emptyIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: colors.goldLight + '40',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xl,
-  },
-  emptyTitle: {
-    ...typography.h3,
-    color: colors.textPrimary,
-    marginBottom: spacing.sm,
-  },
-  emptySubtitle: {
+  emptyText: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
   },
 
-  // Error State
+  // Error state
   errorTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
     marginTop: spacing.md,
   },
   errorSubtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.xs,
-  },
-
-  // FAB
-  fab: {
-    position: 'absolute',
-    bottom: 24,
-    right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: colors.gold,
-    justifyContent: 'center',
-    alignItems: 'center',
-    ...shadows.lg,
   },
 });

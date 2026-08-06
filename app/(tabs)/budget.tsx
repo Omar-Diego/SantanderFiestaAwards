@@ -12,12 +12,12 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
 import { getPeriodLabel } from '../../src/utils/date';
-import { colors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../../src/types';
@@ -49,7 +49,7 @@ function parseDay(raw: string): number {
   return Math.min(31, Math.max(0, n));
 }
 
-// ─── Main Screen ────────────────────────────────────────
+// ─── Main Screen (Credit) ───────────────────────────────
 export default function BudgetScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
@@ -127,7 +127,7 @@ export default function BudgetScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.gold} />
+          <ActivityIndicator size="large" color={darkColors.red} />
         </View>
       </SafeAreaView>
     );
@@ -138,7 +138,11 @@ export default function BudgetScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centerContent}>
-          <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
+          <MaterialCommunityIcons
+            name="cloud-off-outline"
+            size={48}
+            color={darkColors.textMuted}
+          />
           <Text style={styles.errorTitle}>Error de conexión</Text>
           <Text style={styles.errorSubtitle}>{error.message}</Text>
         </View>
@@ -161,7 +165,7 @@ export default function BudgetScreen() {
             showsVerticalScrollIndicator={false}
           >
             <View style={styles.header}>
-              <Text style={styles.greeting}>Presupuesto</Text>
+              <Text style={styles.headerTitle}>Crédito</Text>
               <Text style={styles.groupName}>
                 {config ? 'Editar presupuesto' : '¿Cuánto quieres gastar?'}
               </Text>
@@ -183,8 +187,9 @@ export default function BudgetScreen() {
                     if (formError) setFormError('');
                   }}
                   placeholder="0.00"
-                  placeholderTextColor={colors.textMuted}
+                  placeholderTextColor={darkColors.textMuted}
                   keyboardType="decimal-pad"
+                  keyboardAppearance="dark"
                   autoFocus
                 />
               </View>
@@ -203,8 +208,9 @@ export default function BudgetScreen() {
                   if (formError) setFormError('');
                 }}
                 placeholder="1"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={darkColors.textMuted}
                 keyboardType="number-pad"
+                keyboardAppearance="dark"
                 maxLength={2}
               />
 
@@ -217,7 +223,11 @@ export default function BudgetScreen() {
                   disabled={submitting}
                   activeOpacity={0.85}
                 >
-                  <Ionicons name="checkmark-circle-outline" size={22} color={colors.textOnGold} />
+                  <MaterialCommunityIcons
+                    name="check-circle-outline"
+                    size={22}
+                    color="#FFFFFF"
+                  />
                   <Text style={styles.submitText}>
                     {submitting ? 'Guardando...' : 'GUARDAR PRESUPUESTO'}
                   </Text>
@@ -252,11 +262,15 @@ export default function BudgetScreen() {
         <View style={styles.header}>
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.greeting}>Presupuesto</Text>
+              <Text style={styles.headerTitle}>Crédito</Text>
               <Text style={styles.groupName}>Te queda</Text>
             </View>
-            <TouchableOpacity style={styles.editBtn} onPress={openEdit}>
-              <Ionicons name="pencil" size={18} color={colors.gold} />
+            <TouchableOpacity style={styles.editBtn} onPress={openEdit} activeOpacity={0.8}>
+              <MaterialCommunityIcons
+                name="pencil-outline"
+                size={18}
+                color={darkColors.red}
+              />
             </TouchableOpacity>
           </View>
           <Text style={styles.monthLabel}>{getPeriodLabel(period)}</Text>
@@ -267,7 +281,7 @@ export default function BudgetScreen() {
           <Text
             style={[
               styles.summaryAmount,
-              isOverBudget && styles.summaryAmountNegative,
+              isOverBudget ? styles.summaryAmountNegative : styles.summaryAmountPositive,
             ]}
           >
             {formatCurrency(remaining)}
@@ -286,8 +300,24 @@ export default function BudgetScreen() {
 
           <View style={styles.summaryMeta}>
             <View style={styles.metaItem}>
-              <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
+              <MaterialCommunityIcons
+                name="receipt-outline"
+                size={14}
+                color={darkColors.textMuted}
+              />
               <Text style={styles.metaText}>{formatCurrency(spent)} gastado</Text>
+            </View>
+            <View style={styles.metaDivider} />
+            <View style={styles.metaItem}>
+              <MaterialCommunityIcons
+                name="calendar-blank-outline"
+                size={14}
+                color={darkColors.textMuted}
+              />
+              <Text style={styles.metaText}>
+                {periodTransactions.length}{' '}
+                {periodTransactions.length === 1 ? 'gasto' : 'gastos'}
+              </Text>
             </View>
           </View>
 
@@ -311,7 +341,11 @@ export default function BudgetScreen() {
         {periodTransactions.length === 0 && (
           <View style={styles.emptyState}>
             <View style={styles.emptyIconWrap}>
-              <Ionicons name="wallet-outline" size={48} color={colors.gold} />
+              <MaterialCommunityIcons
+                name="wallet-outline"
+                size={48}
+                color={darkColors.red}
+              />
             </View>
             <Text style={styles.emptyTitle}>Sin gastos en este período</Text>
           </View>
@@ -328,7 +362,11 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <View style={txStyles.row}>
       <View style={txStyles.iconWrap}>
-        <Ionicons name="receipt-outline" size={20} color={colors.gold} />
+        <MaterialCommunityIcons
+          name="receipt-outline"
+          size={20}
+          color={darkColors.textSecondary}
+        />
       </View>
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
@@ -346,8 +384,8 @@ const txStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.divider,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: darkColors.divider,
     gap: spacing.md,
   },
   iconWrap: {
@@ -356,23 +394,23 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.goldLight + '40',
+    backgroundColor: darkColors.surfaceElevated,
   },
   info: {
     flex: 1,
   },
   description: {
     ...typography.body,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
   date: {
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
     marginTop: 2,
   },
   amount: {
     ...typography.bodyBold,
-    color: colors.error,
+    color: darkColors.textPrimary,
   },
 });
 
@@ -380,13 +418,13 @@ const txStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: darkColors.background,
   },
   scroll: {
     flex: 1,
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 160,
   },
   centerContent: {
     flex: 1,
@@ -397,8 +435,8 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingHorizontal: spacing.xxl,
-    paddingTop: spacing.xl,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.lg,
     paddingBottom: spacing.md,
   },
   headerRow: {
@@ -406,70 +444,70 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     justifyContent: 'space-between',
   },
-  greeting: {
-    ...typography.label,
-    color: colors.textSecondary,
-    letterSpacing: 1.5,
+  headerTitle: {
+    ...typography.h1,
+    color: darkColors.textPrimary,
   },
   groupName: {
-    ...typography.h1,
-    color: colors.textPrimary,
+    ...typography.body,
+    color: darkColors.textSecondary,
     marginTop: spacing.xs,
   },
   monthLabel: {
-    ...typography.body,
-    color: colors.gold,
+    ...typography.small,
+    color: darkColors.textMuted,
     marginTop: spacing.xs,
   },
   editBtn: {
-    width: 36,
-    height: 36,
+    width: 38,
+    height: 38,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: darkColors.surface,
     justifyContent: 'center',
     alignItems: 'center',
+    ...shadows.sm,
   },
 
   // Summary Card
   summaryCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.xxl,
+    backgroundColor: darkColors.surface,
+    marginHorizontal: spacing.xl,
     borderRadius: borderRadius.lg,
-    padding: spacing.xxl,
+    padding: spacing.xl,
     alignItems: 'center',
     ...shadows.md,
   },
   summaryAmount: {
     fontSize: 40,
     fontWeight: '700',
-    color: colors.success,
     letterSpacing: -0.5,
   },
+  summaryAmountPositive: {
+    color: darkColors.green,
+  },
   summaryAmountNegative: {
-    color: colors.error,
+    color: darkColors.red,
   },
   summarySubtitle: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
     marginTop: spacing.xs,
   },
   progressTrack: {
     width: '100%',
     height: 8,
     borderRadius: borderRadius.full,
-    backgroundColor: colors.divider,
+    backgroundColor: darkColors.surfaceElevated,
     marginTop: spacing.lg,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
     borderRadius: borderRadius.full,
-    backgroundColor: colors.gold,
+    backgroundColor: darkColors.green,
   },
   progressFillOver: {
-    backgroundColor: colors.error,
+    backgroundColor: darkColors.red,
   },
   summaryMeta: {
     flexDirection: 'row',
@@ -484,11 +522,16 @@ const styles = StyleSheet.create({
   },
   metaText: {
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
+  },
+  metaDivider: {
+    width: 1,
+    height: 14,
+    backgroundColor: darkColors.divider,
   },
   overBudgetText: {
     ...typography.small,
-    color: colors.error,
+    color: darkColors.red,
     marginTop: spacing.sm,
     fontWeight: '600',
   },
@@ -496,16 +539,16 @@ const styles = StyleSheet.create({
   // Sections
   section: {
     marginTop: spacing.xxl,
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
   },
   sectionTitle: {
     ...typography.label,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     letterSpacing: 1,
     marginBottom: spacing.md,
   },
   recentList: {
-    backgroundColor: colors.surface,
+    backgroundColor: darkColors.surface,
     borderRadius: borderRadius.lg,
     paddingHorizontal: spacing.lg,
     ...shadows.sm,
@@ -514,55 +557,55 @@ const styles = StyleSheet.create({
   // Empty State
   emptyState: {
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.huge,
   },
   emptyIconWrap: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: colors.goldLight + '40',
+    backgroundColor: darkColors.surfaceElevated,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: spacing.xl,
   },
   emptyTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
     marginBottom: spacing.sm,
   },
 
   // Error State
   errorTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
     marginTop: spacing.md,
   },
   errorSubtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     textAlign: 'center',
     marginTop: spacing.xs,
   },
 
   // Form (setup / edit)
   formCard: {
-    backgroundColor: colors.surface,
-    marginHorizontal: spacing.xxl,
+    backgroundColor: darkColors.surface,
+    marginHorizontal: spacing.xl,
     marginTop: spacing.lg,
     borderRadius: borderRadius.lg,
-    padding: spacing.xxl,
+    padding: spacing.xl,
     ...shadows.md,
   },
   sectionLabel: {
     ...typography.label,
-    color: colors.textMuted,
+    color: darkColors.textSecondary,
     letterSpacing: 1.5,
     marginBottom: spacing.md,
   },
   hint: {
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
     marginTop: -spacing.sm,
     marginBottom: spacing.md,
   },
@@ -574,17 +617,17 @@ const styles = StyleSheet.create({
   currencySymbol: {
     fontSize: 28,
     fontWeight: '700',
-    color: colors.gold,
+    color: darkColors.textPrimary,
     marginRight: spacing.xs,
   },
   amountInput: {
     fontSize: 36,
     fontWeight: '700',
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
     minWidth: 160,
     textAlign: 'center',
     borderBottomWidth: 2,
-    borderBottomColor: colors.goldLight,
+    borderBottomColor: darkColors.red,
     paddingBottom: spacing.sm,
   },
   dayInput: {
@@ -592,12 +635,12 @@ const styles = StyleSheet.create({
     width: 100,
     alignSelf: 'center',
     textAlign: 'center',
-    backgroundColor: colors.surfaceElevated,
+    backgroundColor: darkColors.surfaceElevated,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: darkColors.divider,
     borderRadius: borderRadius.md,
     ...typography.h3,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
   formButtons: {
     marginTop: spacing.xxl,
@@ -606,7 +649,7 @@ const styles = StyleSheet.create({
   submitButton: {
     width: '100%',
     height: 56,
-    backgroundColor: colors.gold,
+    backgroundColor: darkColors.red,
     borderRadius: borderRadius.md,
     flexDirection: 'row',
     justifyContent: 'center',
@@ -619,7 +662,7 @@ const styles = StyleSheet.create({
   },
   submitText: {
     ...typography.bodyBold,
-    color: colors.textOnGold,
+    color: '#FFFFFF',
     fontSize: 16,
     letterSpacing: 1,
   },
@@ -629,13 +672,13 @@ const styles = StyleSheet.create({
   },
   cancelText: {
     ...typography.body,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
   },
 
   // Error
   errorText: {
     ...typography.small,
-    color: colors.error,
+    color: darkColors.red,
     marginTop: spacing.sm,
     textAlign: 'center',
   },

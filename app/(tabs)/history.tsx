@@ -8,13 +8,13 @@ import {
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
 import { deleteTransaction } from '../../src/services/transactions';
-import { colors, typography, spacing, borderRadius } from '../../src/theme';
+import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../../src/types';
@@ -35,7 +35,7 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
-// ─── History Screen ─────────────────────────────────────
+// ─── History Screen (Activity) ──────────────────────────
 export default function HistoryScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
@@ -140,7 +140,7 @@ export default function HistoryScreen() {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
         <View style={styles.centerContent}>
-          <ActivityIndicator size="large" color={colors.gold} />
+          <ActivityIndicator size="large" color={darkColors.red} />
         </View>
       </SafeAreaView>
     );
@@ -150,7 +150,7 @@ export default function HistoryScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       {/* ── Header ──────────────────────────── */}
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Historial</Text>
+        <Text style={styles.headerTitle}>Actividad</Text>
       </View>
 
       {/* ── Month Filter ─────────────────────── */}
@@ -158,8 +158,13 @@ export default function HistoryScreen() {
         <TouchableOpacity
           style={styles.monthArrow}
           onPress={() => changeMonth(-1)}
+          activeOpacity={0.7}
         >
-          <Ionicons name="chevron-back" size={22} color={colors.gold} />
+          <MaterialCommunityIcons
+            name="chevron-left"
+            size={22}
+            color={darkColors.red}
+          />
         </TouchableOpacity>
         <View style={styles.monthCenter}>
           <Text style={styles.monthText}>
@@ -169,8 +174,13 @@ export default function HistoryScreen() {
         <TouchableOpacity
           style={styles.monthArrow}
           onPress={() => changeMonth(1)}
+          activeOpacity={0.7}
         >
-          <Ionicons name="chevron-forward" size={22} color={colors.gold} />
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={22}
+            color={darkColors.red}
+          />
         </TouchableOpacity>
       </View>
 
@@ -180,9 +190,7 @@ export default function HistoryScreen() {
           {filteredTransactions.length}{' '}
           {filteredTransactions.length === 1 ? 'gasto' : 'gastos'}
         </Text>
-        <Text style={styles.summaryTotal}>
-          {formatCurrency(monthTotal)}
-        </Text>
+        <Text style={styles.summaryTotal}>{formatCurrency(monthTotal)}</Text>
       </View>
 
       {/* ── Transaction List ──────────────────── */}
@@ -196,7 +204,11 @@ export default function HistoryScreen() {
         />
       ) : (
         <View style={styles.emptyState}>
-          <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
+          <MaterialCommunityIcons
+            name="receipt-outline"
+            size={48}
+            color={darkColors.textMuted}
+          />
           <Text style={styles.emptyTitle}>Sin gastos</Text>
           <Text style={styles.emptySubtitle}>
             No hay gastos registrados este mes
@@ -228,13 +240,13 @@ function SwipeableRow({
           activeOpacity={0.8}
         >
           {isDeleting ? (
-            <ActivityIndicator color={colors.textOnGold} size="small" />
+            <ActivityIndicator color="#FFFFFF" size="small" />
           ) : (
             <>
-              <Ionicons
-                name="trash-outline"
+              <MaterialCommunityIcons
+                name="trash-can-outline"
                 size={22}
-                color={colors.textOnGold}
+                color="#FFFFFF"
               />
               <Text style={swipeStyles.actionText}>Eliminar</Text>
             </>
@@ -253,7 +265,11 @@ function SwipeableRow({
     >
       <View style={txStyles.row}>
         <View style={txStyles.iconWrap}>
-          <Ionicons name="receipt-outline" size={20} color={colors.gold} />
+          <MaterialCommunityIcons
+            name="receipt-outline"
+            size={20}
+            color={darkColors.textSecondary}
+          />
         </View>
         <View style={txStyles.info}>
           <Text style={txStyles.description} numberOfLines={1}>
@@ -269,10 +285,13 @@ function SwipeableRow({
 
 const swipeStyles = StyleSheet.create({
   action: {
-    backgroundColor: colors.error,
+    backgroundColor: darkColors.red,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 80,
+    width: 84,
+    borderRadius: borderRadius.md,
+    marginVertical: spacing.sm,
+    marginRight: spacing.xxl,
   },
   actionInner: {
     alignItems: 'center',
@@ -282,7 +301,7 @@ const swipeStyles = StyleSheet.create({
   },
   actionText: {
     ...typography.small,
-    color: colors.textOnGold,
+    color: '#FFFFFF',
     fontSize: 11,
     fontWeight: '600',
   },
@@ -294,8 +313,8 @@ const txStyles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: spacing.md,
-    paddingHorizontal: spacing.xxl,
-    backgroundColor: colors.background,
+    paddingHorizontal: spacing.xl,
+    backgroundColor: darkColors.background,
     gap: spacing.md,
   },
   iconWrap: {
@@ -304,23 +323,23 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: colors.goldLight + '40',
+    backgroundColor: darkColors.surfaceElevated,
   },
   info: {
     flex: 1,
   },
   description: {
     ...typography.body,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
   date: {
     marginTop: 2,
     ...typography.small,
-    color: colors.textMuted,
+    color: darkColors.textMuted,
   },
   amount: {
     ...typography.bodyBold,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
 });
 
@@ -328,7 +347,7 @@ const txStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: colors.background,
+    backgroundColor: darkColors.background,
   },
   centerContent: {
     flex: 1,
@@ -338,25 +357,24 @@ const styles = StyleSheet.create({
 
   // Header
   header: {
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
   },
   headerTitle: {
     ...typography.h1,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
 
   // Month Filter
   monthFilter: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: spacing.xxl,
-    backgroundColor: colors.surface,
+    marginHorizontal: spacing.xl,
+    backgroundColor: darkColors.surface,
     borderRadius: borderRadius.md,
-    borderWidth: 1,
-    borderColor: colors.border,
     marginBottom: spacing.md,
+    ...shadows.sm,
   },
   monthArrow: {
     paddingHorizontal: spacing.xl,
@@ -368,7 +386,7 @@ const styles = StyleSheet.create({
   },
   monthText: {
     ...typography.bodyBold,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
 
   // Summary Bar
@@ -376,21 +394,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
+    paddingHorizontal: spacing.xl,
     paddingBottom: spacing.md,
   },
   summaryLabel: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
   },
   summaryTotal: {
     ...typography.bodyBold,
-    color: colors.gold,
+    color: darkColors.textPrimary,
   },
 
   // List
   listContent: {
-    paddingBottom: spacing.xxl,
+    paddingBottom: 160,
   },
 
   // Empty
@@ -403,11 +421,11 @@ const styles = StyleSheet.create({
   },
   emptyTitle: {
     ...typography.h3,
-    color: colors.textPrimary,
+    color: darkColors.textPrimary,
   },
   emptySubtitle: {
     ...typography.body,
-    color: colors.textSecondary,
+    color: darkColors.textSecondary,
     textAlign: 'center',
   },
 });

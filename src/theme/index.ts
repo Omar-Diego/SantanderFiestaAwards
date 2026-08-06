@@ -40,6 +40,36 @@ export const colors = {
   shadow: '#000000',
 } as const;
 
+/**
+ * Dark mode palette (v2 design system).
+ * See Design.md — dark banking-style UI.
+ * Screens are being migrated from `colors` (white & gold) to `darkColors`.
+ */
+export const darkColors = {
+  // Backgrounds
+  background: '#000000',       // Pure black screen background
+  surface: '#1C1C1E',          // Cards, widgets, floating nav
+  surfaceElevated: '#2C2C2E',  // Raised surfaces
+
+  // Accents
+  red: '#FF3B30',              // Santander accent: avatar, links, alerts
+  green: '#2EA071',            // Available / positive amounts
+  greenBright: '#00E676',      // Bright variant
+  warning: '#FF9F0A',          // Near-limit warnings
+
+  // Text
+  textPrimary: '#FFFFFF',
+  textSecondary: '#8E8E93',    // Medium gray
+  textMuted: '#6B6B6B',
+
+  // Borders & Dividers
+  divider: '#2C2C2E',
+  pill: '#3A3A3C',             // Pill backgrounds (e.g. "MXN")
+
+  // Shadows
+  shadow: '#000000',
+} as const;
+
 export const spacing = {
   xs: 4,
   sm: 8,

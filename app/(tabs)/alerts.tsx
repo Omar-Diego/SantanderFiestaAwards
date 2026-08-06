@@ -114,7 +114,7 @@ export default function AlertsScreen() {
     ? 'GASTADO EN EL PERÍODO'
     : isOver
       ? 'TE PASAS POR'
-      : 'DISPONIBLE EN EL PERÍODO';
+      : 'DISPONIBLE';
 
   // ─── Build alert cards from real data ─────────────────
   const alerts: AlertItem[] = [];
@@ -124,7 +124,7 @@ export default function AlertsScreen() {
       key: 'no-budget',
       icon: 'alert-circle-outline',
       tone: 'warning',
-      title: 'Sin presupuesto definido',
+      title: 'Sin presupuesto',
       body: 'Define una meta de gasto para recibir alertas automáticas.',
       actionLabel: 'Ir a Crédito',
       actionRoute: '/budget',

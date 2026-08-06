@@ -13,6 +13,7 @@
 - **Espaciado simétrico:** la distancia de un elemento a los bordes de su contenedor debe ser uniforme (igual en todos los lados). Preferir insets uniformes (ej. `margin: 6`) sobre medidas fijas por contenido.
 - La navbar es una **píldora flotante** con cápsula activa de gap uniforme (ver sección 4.6).
 - **Botones de acción: estilo outline unificado** — fondo transparente, borde rojo Santander, icono **sin fondo** (igual al botón "Editar presupuesto"). Ningún botón de acción lleva fondo rojo sólido.
+- **Textos unificados:** el mismo concepto usa SIEMPRE las mismas palabras en toda la app (ej. vacío de gastos = "Sin gastos" + "Aún no hay gastos registrados"; sin presupuesto = "Sin presupuesto"; restante = "DISPONIBLE"). Botones en oración: "Registrar gasto", "Guardar presupuesto".
 - El cliente aprueba iterando sobre la app real: cambios pequeños, verificables, uno a la vez.
 
 ---
@@ -133,7 +134,8 @@ Todas las pestañas comparten la identidad del Home:
 - **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "TE QUEDA"; Alertas: "DISPONIBLE EN EL PERÍODO")
 - Formulario de **Crédito**: **sin card** — directo sobre el fondo de la app; teclado numérico puro (solo dígitos, sin símbolos +/−)
 - Formulario de **Nuevo gasto**: secciones dentro de **cards** `#1C1C1E` con borde sutil
-- **Lista de gastos en Actividad: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (mismo patrón que la lista de Crédito)
+- **Lista de gastos en Actividad y Crédito: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil) con el avatar de comercio (`MerchantAvatar`), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `getDayLabel` en `src/utils/date.ts`)
+- **Estados vacíos unificados** (Inicio, Actividad y Crédito): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
 
 ---
 

@@ -232,7 +232,10 @@ export default function DashboardScreen() {
                   size={44}
                   color={darkColors.textMuted}
                 />
-                <Text style={styles.emptyText}>No hay gastos este mes</Text>
+                <Text style={styles.emptyText}>Sin gastos</Text>
+                <Text style={styles.emptySubtitle}>
+                  Aún no hay gastos registrados
+                </Text>
               </View>
             )}
           </View>
@@ -440,6 +443,11 @@ const styles = StyleSheet.create({
   emptyText: {
     ...typography.body,
     color: darkColors.textSecondary,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    ...typography.small,
+    color: darkColors.textMuted,
     textAlign: 'center',
   },
 

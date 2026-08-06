@@ -255,7 +255,7 @@ export default function AddTransactionScreen() {
           {/* ── Submit ──────────────────────────────── */}
           <View style={styles.submitSection}>
             <PrimaryButton
-              title={submitting ? 'Registrando...' : 'REGISTRAR GASTO'}
+              title={submitting ? 'Registrando...' : 'Registrar gasto'}
               icon="check-circle-outline"
               onPress={handleSubmit}
               loading={submitting}

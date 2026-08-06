@@ -113,7 +113,7 @@ export default function SetupScreen() {
 
         <View style={styles.card}>
           <PrimaryButton
-            title="CREAR NUEVO GRUPO"
+            title="Crear nuevo grupo"
             onPress={() => {
               setGroupCode('');
               setCodeError('');
@@ -131,7 +131,7 @@ export default function SetupScreen() {
 
         <View style={styles.card}>
           <PrimaryButton
-            title="UNIRSE A UN GRUPO"
+            title="Unirse a un grupo"
             onPress={() => {
               setGroupCode('');
               setCodeError('');
@@ -152,7 +152,7 @@ export default function SetupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoSection}>
-          <Text style={styles.subtitle}>Nuevo Grupo</Text>
+          <Text style={styles.subtitle}>Nuevo grupo</Text>
         </View>
 
         <View style={styles.card}>
@@ -176,7 +176,7 @@ export default function SetupScreen() {
           </View>
 
           <PrimaryButton
-            title="CREAR GRUPO"
+            title="Crear grupo"
             onPress={handleCreateGroup}
             loading={submitting}
           />
@@ -196,8 +196,7 @@ export default function SetupScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.logoSection}>
-        <Text style={styles.subtitle}>Unirse a Grupo</Text>
+      <View style={styles.logoSection}>          <Text style={styles.subtitle}>Unirse a un grupo</Text>
       </View>
 
       <View style={styles.card}>
@@ -226,7 +225,7 @@ export default function SetupScreen() {
         </View>
 
         <PrimaryButton
-          title="UNIRSE AL GRUPO"
+          title="Unirse al grupo"
           onPress={handleJoinGroup}
           loading={submitting}
         />

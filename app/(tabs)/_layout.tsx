@@ -1,4 +1,4 @@
-import { Tabs, usePathname, router } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import {
   Pressable,
@@ -90,12 +90,6 @@ function FloatingTabBar({ state, navigation }: any) {
 }
 
 export default function TabLayout() {
-  const pathname = usePathname();
-  const insets = useSafeAreaInsets();
-  const showFab = pathname !== '/add';
-
-  const fabBottom = insets.bottom + 16 + BAR_HEIGHT + 10;
-
   return (
     <View style={styles.root}>
       <Tabs
@@ -106,22 +100,9 @@ export default function TabLayout() {
         <Tabs.Screen name="budget" options={{ title: 'Crédito' }} />
         <Tabs.Screen name="history" options={{ title: 'Actividad' }} />
         <Tabs.Screen name="alerts" options={{ title: 'Alertas' }} />
-        {/* Registrar gasto: hidden from the bar, opened via the floating + button */}
+        {/* Registrar gasto: hidden from the bar, opened from Home's quick actions */}
         <Tabs.Screen name="add" options={{ href: null }} />
       </Tabs>
-
-      {showFab && (
-        <View style={[styles.fabShadow, { bottom: fabBottom }]}>
-          <Pressable
-            style={({ pressed }) => [styles.fab, pressed && styles.fabPressed]}
-            onPress={() => router.push('/add')}
-            android_ripple={{ color: 'rgba(255,255,255,0.25)' }}
-            accessibilityLabel="Registrar gasto"
-          >
-            <MaterialCommunityIcons name="plus" size={30} color="#FFFFFF" />
-          </Pressable>
-        </View>
-      )}
     </View>
   );
 }
@@ -191,28 +172,4 @@ const styles = StyleSheet.create({
   },
 
   // Floating action button (Registrar gasto) — same two-layer trick
-  fabShadow: {
-    position: 'absolute',
-    right: 22,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    shadowColor: '#000000',
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: 6 },
-    elevation: 12,
-  },
-  fab: {
-    flex: 1,
-    backgroundColor: darkColors.red,
-    borderRadius: 28,
-    overflow: 'hidden',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fabPressed: {
-    transform: [{ scale: 0.94 }],
-    opacity: 0.9,
-  },
 });

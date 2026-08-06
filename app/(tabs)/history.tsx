@@ -136,11 +136,15 @@ export default function HistoryScreen() {
         return <Text style={sharedStyles.dayHeader}>{item.label}</Text>;
       }
       return (
-        <SwipeableRow
-          transaction={item.transaction}
-          onDelete={() => confirmDelete(item.transaction.id)}
-          isDeleting={deleting === item.transaction.id}
-        />
+        // Spacing lives on the wrapper so the swipeable row measures exactly
+        // the card height → the delete button stretches to match it
+        <View style={styles.rowWrap}>
+          <SwipeableRow
+            transaction={item.transaction}
+            onDelete={() => confirmDelete(item.transaction.id)}
+            isDeleting={deleting === item.transaction.id}
+          />
+        </View>
       );
     },
     [confirmDelete, deleting]
@@ -296,7 +300,10 @@ const swipeStyles = StyleSheet.create({
     width: 84,
     borderRadius: borderRadius.md,
     marginRight: spacing.sm,
-    marginBottom: spacing.sm, // matches the card's bottom margin so the pill aligns with the card
+    // The card no longer carries a bottom margin (spacing moved to the row
+    // wrapper), so the swipeable row measures exactly the card height and
+    // stretch makes this button match it 1:1
+    alignSelf: 'stretch',
   },
   actionInner: {
     alignItems: 'center',
@@ -321,9 +328,11 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.lg,
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: darkColors.borderSubtle,
+    // Right edge in red signals the card can be swiped to delete
+    borderRightWidth: 3,
+    borderRightColor: darkColors.red,
     padding: spacing.lg,
     gap: spacing.md,
-    marginBottom: spacing.sm,
   },
   info: {
     flex: 1,
@@ -415,11 +424,16 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: 48,
   },
-  // Empty (igual que Crédito: justo debajo de la acción, sin gap)
+  // Spacing between rows lives here (see renderItem) so the swipeable
+  // measures the exact card height and the delete button matches it
+  rowWrap: {
+    marginBottom: spacing.sm,
+  },
+  // Empty (justo debajo del resumen, sin gap centrado)
   emptyState: {
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
-    paddingTop: spacing.huge,
+    paddingTop: spacing.xxl,
     gap: spacing.sm,
   },
   emptyTitle: {

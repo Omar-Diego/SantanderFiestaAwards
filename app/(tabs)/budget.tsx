@@ -180,7 +180,7 @@ export default function BudgetScreen() {
               />
             </View>
 
-            <View style={styles.formCard}>
+            <View style={styles.form}>
               <Text style={styles.sectionLabel}>MONTO POR PERÍODO</Text>
               <View style={styles.amountRow}>
                 <Text style={styles.currencySymbol}>$</Text>
@@ -195,9 +195,9 @@ export default function BudgetScreen() {
                     setAmountText(cleaned);
                     if (formError) setFormError('');
                   }}
-                  placeholder="0.00"
+                  placeholder="0"
                   placeholderTextColor={darkColors.textMuted}
-                  keyboardType="decimal-pad"
+                  keyboardType="number-pad"
                   keyboardAppearance="dark"
                   autoFocus
                 />
@@ -350,7 +350,6 @@ export default function BudgetScreen() {
           <PrimaryButton
             title="Editar presupuesto"
             icon="pencil-outline"
-            variant="outline"
             onPress={openEdit}
           />
         </View>
@@ -589,15 +588,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
 
-  // Form (setup / edit)
-  formCard: {
-    backgroundColor: darkColors.surface,
+  // Form (setup / edit) — directo sobre el fondo de la app, sin card
+  form: {
     marginHorizontal: spacing.xl,
     marginTop: spacing.lg,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    padding: spacing.xl,
   },
   sectionLabel: {
     ...typography.label,

@@ -131,7 +131,8 @@ Todas las pestañas comparten la identidad del Home:
   | Alertas | CTA **Ir a Crédito / Ver presupuesto** (botón outline dentro de la tarjeta de alerta) |
   | Nuevo gasto | Botón **REGISTRAR GASTO** (outline, ancho completo) |
 - **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "TE QUEDA"; Alertas: "DISPONIBLE EN EL PERÍODO")
-- Secciones del formulario (Nuevo gasto, Crédito) dentro de **cards** `#1C1C1E` con borde sutil
+- Formulario de **Crédito**: **sin card** — directo sobre el fondo de la app; teclado numérico puro (solo dígitos, sin símbolos +/−)
+- Formulario de **Nuevo gasto**: secciones dentro de **cards** `#1C1C1E` con borde sutil
 - **Lista de gastos en Actividad: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (mismo patrón que la lista de Crédito)
 
 ---

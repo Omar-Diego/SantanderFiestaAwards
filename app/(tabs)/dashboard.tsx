@@ -296,7 +296,10 @@ export default function DashboardScreen() {
 function TransactionCard({ transaction }: { transaction: Transaction }) {
   return (
     <View style={txStyles.card}>
-      <MerchantAvatar description={transaction.description} />
+      <MerchantAvatar
+        description={transaction.description}
+        seed={transaction.id}
+      />
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
           {transaction.description}

@@ -273,7 +273,10 @@ function SwipeableRow({
     >
       {/* Each expense is its own card */}
       <View style={txStyles.card}>
-        <MerchantAvatar description={transaction.description} />
+        <MerchantAvatar
+          description={transaction.description}
+          seed={transaction.id}
+        />
         <View style={txStyles.info}>
           <Text style={txStyles.description} numberOfLines={1}>
             {transaction.description}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, useCallback } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   ActivityIndicator,
@@ -14,7 +15,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
-import { getGroupId, getGroupName } from '../../src/utils/storage';
+import { getGroupId } from '../../src/utils/storage';
 import { getPeriodLabel } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
@@ -56,15 +57,13 @@ const QUICK_ACTIONS = [
 // ─── Main Dashboard (Home) ──────────────────────────────
 export default function DashboardScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
-  const [groupName, setGroupName] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
 
   // Load group info from storage
   useEffect(() => {
     (async () => {
-      const [gid, gname] = await Promise.all([getGroupId(), getGroupName()]);
+      const gid = await getGroupId();
       setGroupId(gid);
-      setGroupName(gname);
       setStorageLoaded(true);
     })();
   }, []);
@@ -110,8 +109,6 @@ export default function DashboardScreen() {
     () => getRecentTransactions(5),
     [getRecentTransactions]
   );
-
-  const initial = (groupName || 'S').trim().charAt(0).toUpperCase();
 
   // ─── Loading state ──────────────────────────────────
   if (loading) {
@@ -181,40 +178,15 @@ export default function DashboardScreen() {
           </Svg>
         </View>
 
-        {/* ── Header ────────────────────────────────── */}
+        {/* ── Header (logo Santander) ──────────────── */}
         <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{initial}</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.searchPill}
-            onPress={() => router.push('/history')}
-            activeOpacity={0.7}
-            accessibilityLabel="Buscar en el historial"
-          >
-            <MaterialCommunityIcons
-              name="magnify"
-              size={18}
-              color={darkColors.textSecondary}
+            <Image
+              source={require('../../assets/SantanderLogo.png')}
+              style={styles.avatarLogo}
+              resizeMode="contain"
             />
-            <Text style={styles.searchPlaceholder}>Buscar</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.push('/budget')}
-            activeOpacity={0.7}
-            accessibilityLabel="Ir a presupuesto"
-          >
-            <MaterialCommunityIcons name="finance" size={20} color={darkColors.textPrimary} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.headerBtn}
-            onPress={() => router.push('/alerts')}
-            activeOpacity={0.7}
-            accessibilityLabel="Ver alertas"
-          >
-            <MaterialCommunityIcons name="bell-outline" size={20} color={darkColors.textPrimary} />
-          </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Balance ───────────────────────────────── */}
@@ -397,52 +369,22 @@ const styles = StyleSheet.create({
     height: 320,
   },
 
-  // Header
+  // Header — Santander logo in a white circle
   header: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    gap: spacing.sm,
   },
   avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: darkColors.red,
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFFFFF',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  avatarText: {
-    color: '#FFFFFF',
-    fontSize: 18,
-    fontWeight: '700',
-  },
-  searchPill: {
-    flex: 1,
-    height: 44,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingHorizontal: spacing.lg,
-    backgroundColor: darkColors.surface,
-    borderRadius: 22,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-  },
-  searchPlaceholder: {
-    ...typography.body,
-    color: darkColors.textSecondary,
-  },
-  headerBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: darkColors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    justifyContent: 'center',
-    alignItems: 'center',
+  avatarLogo: {
+    width: 36,
+    height: 36,
   },
 
   // Balance

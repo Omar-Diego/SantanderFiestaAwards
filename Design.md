@@ -71,13 +71,12 @@
 
 Estructura vertical de la pantalla principal:
 
-### 4.1 Encabezado (Header estilo Revolut)
+### 4.1 Encabezado (Logo Santander)
 ```
-[🟥S]  [ 🔍 Buscar          ]  [📈] [🔔]
+        [ logo Santander en círculo blanco ]
 ```
-- **Izquierda — Avatar circular** rojo brillante con la inicial del grupo (blanco)
-- **Centro — Barra de búsqueda píldora** (`#1C1C1E`, borde sutil, lupa + "Buscar") → lleva a Actividad
-- **Derecha — 2 botones circulares** (`#1C1C1E`): gráfica → Crédito, campana → Alertas
+- **Avatar circular con fondo blanco** (`#FFFFFF`) con el **logo de Santander** centrado dentro (asset `assets/SantanderLogo.png`)
+- **Sin** barra de búsqueda ni botones laterales — el header es solo el logo
 
 ### 4.2 Balance Central
 - Todo el bloque **centrado horizontalmente**
@@ -110,7 +109,7 @@ Estructura vertical de la pantalla principal:
   | **Crédito** | Gráfica con flecha arriba | Inactiva: gris |
   | **Actividad** | Lista con viñetas | Inactiva: gris |
   | **Alertas** | Campana | Inactiva: gris |
-- Botón flotante **"+" rojo** (Registrar gasto) sobre la barra, a la derecha
+- ~~Botón flotante "+" rojo~~ — **eliminado**: registrar gasto se hace desde la acción rápida **Registrar** del Home (o navegando a `/add`)
 
 ---
 

@@ -1,7 +1,7 @@
 # 🎨 Santander Fiesta Awards — Design System (v2 · Dark Mode)
 
 > *Documento vivo de diseño — define el look & feel de la app.*
-> *Referencia visual: app de banca Santander en modo oscuro (estilo "Santander LikeU").*
+> *Referencia visual: **Revolut** (app bancaria) en modo oscuro — de ahí salió la barra de navegación y las cards.*
 > *Se actualiza en cada sesión de rediseño.*
 
 > ⚙️ **Instrucción permanente del cliente:** para CUALQUIER cambio visual en esta app, cargar y aplicar la skill de diseño (**frontend-design**) antes de editar.
@@ -18,12 +18,15 @@
 
 ## 🧭 1. Dirección de Diseño
 
-**Objetivo:** abandonar el tema claro "blanco y dorado" y adoptar un **modo oscuro tipo app bancaria premium**:
+**Objetivo:** estilo **Revolut** en modo oscuro — app bancaria premium:
 
 - **Fondo negro puro** `#000000` en toda la interfaz (sin marcos ni bordes blancos externos)
+- **Glow ambiental sutil:** gradientes radiales de baja opacidad (rojo/morado) detrás del balance
 - **Tipografía moderna sans-serif** con alto contraste
 - **Acentos:** rojo brillante (marca Santander) + verde brillante (dinero disponible)
-- **Superficies:** gris muy oscuro `#1C1C1E` para tarjetas y contenedores flotantes
+- **Superficies:** gris muy oscuro `#1C1C1E` con **borde sutil** `rgba(255,255,255,0.08)` en cards
+- **Íconos de comercio:** círculos de color (inicial del comercio, color determinista por descripción)
+- **Acciones rápidas circulares** con label debajo (patrón Revolut)
 - Esquinas muy redondeadas (píldoras y tarjetas de ~16px)
 
 ---
@@ -41,6 +44,7 @@
 | `textSecondary` | `#8E8E93` *(gris medio)* | Subtítulos, textos descriptivos |
 | `textMuted` | `#6B6B6B` | Etiquetas de bajo énfasis |
 | `divider` | `#2C2C2E` *(gris oscuro)* | Línea divisoria horizontal |
+| `borderSubtle` | `rgba(255,255,255,0.08)` | Borde sutil de cards estilo Revolut |
 | `pillBackground` | `#3A3A3C` *(gris oscuro)* | Fondo de pills como "MXN" |
 
 > ⚠️ **Nota:** los hex de rojo, gris medio y divider están propuestos; se ajustarán contra la referencia visual exacta.
@@ -67,40 +71,35 @@
 
 Estructura vertical de la pantalla principal:
 
-### 4.1 Encabezado de la Cuenta (Top Bar)
+### 4.1 Encabezado (Header estilo Revolut)
 ```
-[🟥S]  Santander LikeU        [ MXN ]
-       •• 4521
+[🟥S]  [ 🔍 Buscar          ]  [📈] [🔔]
 ```
-- **Izquierda — Avatar:** cuadro con esquinas muy redondeadas, **rojo brillante**, letra **"S" mayúscula blanca** en el centro (estilo Santander)
-- **Centro-Izquierda — Info de cuenta:**
-  - Título: **"Santander LikeU"** — blanco, tamaño mediano, semibold/bold
-  - Subtítulo: **"•• 4521"** — gris medio, pequeño
-- **Derecha — Moneda:** pill-button (cápsula) gris oscura con texto **"MXN"** blanco, pequeño
+- **Izquierda — Avatar circular** rojo brillante con la inicial del grupo (blanco)
+- **Centro — Barra de búsqueda píldora** (`#1C1C1E`, borde sutil, lupa + "Buscar") → lleva a Actividad
+- **Derecha — 2 botones circulares** (`#1C1C1E`): gráfica → Crédito, campana → Alertas
 
-### 4.2 Bloque Principal de Balance ("Spent this month")
+### 4.2 Balance Central
 - Todo el bloque **centrado horizontalmente**
-- Etiqueta superior: **"Spent this month"** — gris claro, fuente pequeña
-- Monto principal: **"$0.00"** — blanco, fuente grande, limpia, negrita
-- Límite: **"0% of $2,000.00 limit"** — gris claro, fuente pequeña, justo debajo del monto
+- Label pequeño: **"TARJETA FIESTA AWARDS · SALDO ACTUAL"** — gris claro
+- Monto principal: **gastado este mes** — blanco, grande, negrita
+- **"Disponible: $X"** — verde si sobra presupuesto, rojo si te pasas, gris sin presupuesto
+- Botón **píldora "Presupuesto"** debajo → lleva a Crédito
+- Detrás del balance: **glow ambiental** (gradientes radiales rojo/morado de baja opacidad)
 
-### 4.3 Tarjetas de Información Rápida (Widgets en par)
-- Fila horizontal con **dos cajas flotantes**: fondo `#1C1C1E`, esquinas redondeadas **~16px**
-- **Widget izquierdo — Available:**
-  - Título: "Available" — gris claro, pequeño
-  - Valor: "$2,000.00" — grande, negrita, **verde brillante** (`#2EA071` / `#00E676`)
-- **Widget derecho — Payment due:**
-  - Título: "Payment due" — gris claro, pequeño
-  - Valor: "05/07" — grande, negrita, **blanco**
+### 4.3 Acciones Rápidas (Quick Actions)
+- Fila de **4 botones circulares** `#1C1C1E` (borde sutil), icono + label debajo:
+  **Registrar (+)** · **Historial (lista)** · **Presupuesto (gráfica)** · **Alertas (campana)**
 
-### 4.4 Línea Divisoria
-- Línea horizontal tenue **gris oscuro** que separa los widgets de la siguiente sección
+### 4.4 Tarjeta de Actividad
+- Card `#1C1C1E` con **borde sutil** `rgba(255,255,255,0.08)`, radio 16px
+- Cada gasto: **círculo de color del comercio** (color determinista por descripción) con la **inicial** en blanco · descripción bold + fecha gris · monto blanco a la derecha
+- **"Ver todo"** centrado abajo (rojo) → Actividad
+- Estado vacío: icono receipt gris + **"No expenses yet this month"**
 
-### 4.5 Sección de Actividad Reciente ("Recent activity")
-- **Encabezado:** "Recent activity" — blanco, mediano-grande, negrita (izquierda) · **"See all"** — enlace rojo brillante (derecha)
-- **Estado vacío (Empty State):**
-  - Icono centrado: **ticket/receipt en line art**, gris medio
-  - Texto: **"No expenses yet this month"** — centrado, gris claro, debajo del icono
+### 4.5 Tarjeta Período (Próximo)
+- Card con **"PERÍODO"** + rango del período (ej. "19 jul – 18 ago")
+- Pill a la derecha: **"Corte el 01/09"** (día de corte del presupuesto) · "Define presupuesto" si aún no hay meta
 
 ### 4.6 Barra de Navegación Inferior (Floating Pill Nav)
 - Contenedor **flotante tipo píldora** (extremos totalmente redondeados) `#1C1C1E`, con margen lateral y sombra

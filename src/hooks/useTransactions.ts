@@ -52,23 +52,6 @@ export function useTransactions(groupId: string | null) {
     [transactions]
   );
 
-  /** Get expenses grouped by category for a given month */
-  const getCategoryTotals = useCallback(
-    (year: number, month: number): Record<string, number> => {
-      const totals: Record<string, number> = {};
-      transactions
-        .filter((t) => {
-          const d = t.date;
-          return d.getFullYear() === year && d.getMonth() === month;
-        })
-        .forEach((t) => {
-          totals[t.category] = (totals[t.category] || 0) + t.amount;
-        });
-      return totals;
-    },
-    [transactions]
-  );
-
   /** Get the most recent transactions */
   const getRecentTransactions = useCallback(
     (count: number = 5): Transaction[] => {
@@ -82,7 +65,6 @@ export function useTransactions(groupId: string | null) {
     loading,
     error,
     getMonthTotal,
-    getCategoryTotals,
     getRecentTransactions,
   };
 }

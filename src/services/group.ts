@@ -1,5 +1,5 @@
-import firestore from '@react-native-firebase/firestore';
-import { db, getGroupRef } from './firebase';
+import { getDoc, serverTimestamp, setDoc } from '@react-native-firebase/firestore';
+import { getGroupRef } from './firebase';
 import type { GroupInfo } from '../types';
 
 /**
@@ -28,9 +28,9 @@ export async function createGroup(name: string = 'Gastos Casa'): Promise<GroupIn
   // Use the code as the document ID for easy lookup
   const ref = getGroupRef(code);
 
-  await ref.set({
+  await setDoc(ref, {
     name,
-    createdAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
   });
 
   return {
@@ -44,7 +44,7 @@ export async function createGroup(name: string = 'Gastos Casa'): Promise<GroupIn
 export async function groupExists(code: string): Promise<boolean> {
   if (!isValidGroupCode(code)) return false;
   const ref = getGroupRef(code);
-  const snap = await ref.get();
+  const snap = await getDoc(ref);
   return snap.data() !== undefined;
 }
 
@@ -52,7 +52,7 @@ export async function groupExists(code: string): Promise<boolean> {
 export async function getGroupInfo(code: string): Promise<GroupInfo | null> {
   if (!isValidGroupCode(code)) return null;
   const ref = getGroupRef(code);
-  const doc = await ref.get();
+  const doc = await getDoc(ref);
   if (!doc.exists) return null;
 
   const data = doc.data();

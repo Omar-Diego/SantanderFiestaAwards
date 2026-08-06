@@ -6,7 +6,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
-  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -15,7 +14,6 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
 import { deleteTransaction } from '../../src/services/transactions';
-import { CATEGORIES, getCategory } from '../../src/utils/categories';
 import { colors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -47,7 +45,6 @@ export default function HistoryScreen() {
   const now = new Date();
   const [filterYear, setFilterYear] = useState(now.getFullYear());
   const [filterMonth, setFilterMonth] = useState(now.getMonth());
-  const [filterCategory, setFilterCategory] = useState<string | null>(null);
 
   // Load group
   useEffect(() => {
@@ -70,12 +67,9 @@ export default function HistoryScreen() {
       if (d.getFullYear() !== filterYear || d.getMonth() !== filterMonth) {
         return false;
       }
-      if (filterCategory && t.category !== filterCategory) {
-        return false;
-      }
       return true;
     });
-  }, [transactions, filterYear, filterMonth, filterCategory]);
+  }, [transactions, filterYear, filterMonth]);
 
   const monthTotal = useMemo(
     () => filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
@@ -145,7 +139,6 @@ export default function HistoryScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.accentBar} />
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.gold} />
         </View>
@@ -155,8 +148,6 @@ export default function HistoryScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.accentBar} />
-
       {/* ── Header ──────────────────────────── */}
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Historial</Text>
@@ -194,63 +185,6 @@ export default function HistoryScreen() {
         </Text>
       </View>
 
-      {/* ── Category Filter Chips (horizontal) ─── */}
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryFilterContent}
-        style={styles.categoryFilterScroll}
-      >
-        <TouchableOpacity
-          style={[
-            styles.categoryChip,
-            filterCategory === null && styles.categoryChipActive,
-          ]}
-          onPress={() => setFilterCategory(null)}
-        >
-          <Text
-            style={[
-              styles.categoryChipText,
-              filterCategory === null && styles.categoryChipTextActive,
-            ]}
-          >
-            Todas
-          </Text>
-        </TouchableOpacity>
-        {CATEGORIES.map((cat) => (
-          <TouchableOpacity
-            key={cat.id}
-            style={[
-              styles.categoryChip,
-              filterCategory === cat.id && {
-                backgroundColor: cat.color + '20',
-                borderColor: cat.color,
-              },
-            ]}
-            onPress={() =>
-              setFilterCategory((prev) => (prev === cat.id ? null : cat.id))
-            }
-          >
-            <Ionicons
-              name={cat.icon as any}
-              size={14}
-              color={filterCategory === cat.id ? cat.color : colors.textMuted}
-            />
-            <Text
-              style={[
-                styles.categoryChipText,
-                filterCategory === cat.id && {
-                  color: cat.color,
-                  fontWeight: '600',
-                },
-              ]}
-            >
-              {cat.name}
-            </Text>
-          </TouchableOpacity>
-        ))}
-      </ScrollView>
-
       {/* ── Transaction List ──────────────────── */}
       {filteredTransactions.length > 0 ? (
         <FlashList
@@ -265,9 +199,7 @@ export default function HistoryScreen() {
           <Ionicons name="receipt-outline" size={48} color={colors.textMuted} />
           <Text style={styles.emptyTitle}>Sin gastos</Text>
           <Text style={styles.emptySubtitle}>
-            {filterCategory
-              ? 'No hay gastos de esta categoría este mes'
-              : 'No hay gastos registrados este mes'}
+            No hay gastos registrados este mes
           </Text>
         </View>
       )}
@@ -285,7 +217,6 @@ function SwipeableRow({
   onDelete: () => void;
   isDeleting: boolean;
 }) {
-  const category = getCategory(transaction.category);
   const dateFormatted = format(transaction.date, 'd MMM', { locale: es });
 
   const renderRightActions = useCallback(
@@ -321,27 +252,14 @@ function SwipeableRow({
       rightThreshold={40}
     >
       <View style={txStyles.row}>
-        <View
-          style={[
-            txStyles.iconWrap,
-            { backgroundColor: category.color + '20' },
-          ]}
-        >
-          <Ionicons
-            name={category.icon as any}
-            size={20}
-            color={category.color}
-          />
+        <View style={txStyles.iconWrap}>
+          <Ionicons name="receipt-outline" size={20} color={colors.gold} />
         </View>
         <View style={txStyles.info}>
           <Text style={txStyles.description} numberOfLines={1}>
             {transaction.description}
           </Text>
-          <View style={txStyles.meta}>
-            <Text style={txStyles.categoryLabel}>{category.name}</Text>
-            <Text style={txStyles.dot}>·</Text>
-            <Text style={txStyles.date}>{dateFormatted}</Text>
-          </View>
+          <Text style={txStyles.date}>{dateFormatted}</Text>
         </View>
         <Text style={txStyles.amount}>{formatCurrency(transaction.amount)}</Text>
       </View>
@@ -386,6 +304,7 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.goldLight + '40',
   },
   info: {
     flex: 1,
@@ -394,21 +313,8 @@ const txStyles = StyleSheet.create({
     ...typography.body,
     color: colors.textPrimary,
   },
-  meta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    marginTop: 2,
-  },
-  categoryLabel: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
-  dot: {
-    ...typography.small,
-    color: colors.textMuted,
-  },
   date: {
+    marginTop: 2,
     ...typography.small,
     color: colors.textMuted,
   },
@@ -423,10 +329,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  accentBar: {
-    height: 4,
-    backgroundColor: colors.gold,
   },
   centerContent: {
     flex: 1,
@@ -484,41 +386,6 @@ const styles = StyleSheet.create({
   summaryTotal: {
     ...typography.bodyBold,
     color: colors.gold,
-  },
-
-  // Category Filter Chips
-  categoryFilterScroll: {
-    marginBottom: spacing.sm,
-  },
-  categoryFilterContent: {
-    paddingHorizontal: spacing.xxl,
-    gap: spacing.sm,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  categoryChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: borderRadius.full,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  categoryChipActive: {
-    backgroundColor: colors.gold,
-    borderColor: colors.gold,
-  },
-  categoryChipText: {
-    ...typography.small,
-    color: colors.textSecondary,
-    fontSize: 12,
-  },
-  categoryChipTextActive: {
-    color: colors.textOnGold,
-    fontWeight: '600',
   },
 
   // List

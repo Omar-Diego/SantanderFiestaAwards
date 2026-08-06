@@ -12,8 +12,9 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTransactions } from '../../src/hooks/useTransactions';
+import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId, getGroupName } from '../../src/utils/storage';
-import { CATEGORIES, getCategory, getCurrentMonthLabel } from '../../src/utils/categories';
+import { getCurrentMonthLabel } from '../../src/utils/date';
 import { colors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -56,11 +57,19 @@ export default function DashboardScreen() {
     loading: txLoading,
     error,
     getMonthTotal,
-    getCategoryTotals,
     getRecentTransactions,
   } = useTransactions(groupId);
 
-  const loading = !storageLoaded || txLoading;
+  // Budget goal for the current cutoff period (shared by the group)
+  const {
+    config: budgetConfig,
+    loading: budgetLoading,
+    spent: periodSpent,
+    remaining: budgetRemaining,
+    periodTransactions,
+  } = useBudget(groupId, transactions);
+
+  const loading = !storageLoaded || txLoading || budgetLoading;
 
   // Pull to refresh (complement to real-time sync)
   const [refreshing, setRefreshing] = useState(false);
@@ -81,26 +90,10 @@ export default function DashboardScreen() {
     [getMonthTotal, year, month]
   );
 
-  const categoryTotals = useMemo(
-    () => getCategoryTotals(year, month),
-    [getCategoryTotals, year, month]
-  );
-
   const recentTransactions = useMemo(
     () => getRecentTransactions(5),
     [getRecentTransactions]
   );
-
-  // Category breakdown sorted by amount desc
-  const categoryBreakdown = useMemo(() => {
-    const entries = Object.entries(categoryTotals).map(([catId, amount]) => ({
-      id: catId,
-      category: getCategory(catId),
-      amount,
-      percentage: monthTotal > 0 ? (amount / monthTotal) * 100 : 0,
-    }));
-    return entries.sort((a, b) => b.amount - a.amount);
-  }, [categoryTotals, monthTotal]);
 
   const transactionCount = useMemo(
     () =>
@@ -115,7 +108,6 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.accentBar} />
         <View style={styles.centerContent}>
           <ActivityIndicator size="large" color={colors.gold} />
         </View>
@@ -127,7 +119,6 @@ export default function DashboardScreen() {
   if (error) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.accentBar} />
         <View style={styles.centerContent}>
           <Ionicons name="cloud-offline-outline" size={48} color={colors.textMuted} />
           <Text style={styles.errorTitle}>Error de conexión</Text>
@@ -138,12 +129,14 @@ export default function DashboardScreen() {
   }
 
   // ─── Empty state (no transactions) ────────────────
-  const isFirstTime = monthTotal === 0 && transactionCount === 0;
+  const hasBudget = budgetConfig !== null;
+  const isFirstTime = hasBudget
+    ? periodSpent === 0 && periodTransactions.length === 0
+    : monthTotal === 0 && transactionCount === 0;
+  const isOverBudget = hasBudget && budgetRemaining < 0;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.accentBar} />
-
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
@@ -166,41 +159,56 @@ export default function DashboardScreen() {
 
         {/* ── Summary Card ────────────────────────── */}
         <View style={styles.summaryCard}>
-          <Text style={styles.summaryLabel}>GASTO TOTAL</Text>
-          <Text style={styles.summaryAmount}>{formatCurrency(monthTotal)}</Text>
-          <View style={styles.summaryMeta}>
-            <View style={styles.metaItem}>
-              <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
-              <Text style={styles.metaText}>
-                {transactionCount} {transactionCount === 1 ? 'gasto' : 'gastos'}
+          {hasBudget ? (
+            <>
+              <Text style={styles.summaryLabel}>TE QUEDA</Text>
+              <Text
+                style={[
+                  styles.summaryAmount,
+                  isOverBudget && styles.summaryAmountNegative,
+                ]}
+              >
+                {formatCurrency(budgetRemaining)}
               </Text>
-            </View>
-            <View style={styles.metaDivider} />
-            <View style={styles.metaItem}>
-              <Ionicons name="people-outline" size={14} color={colors.textMuted} />
-              <Text style={styles.metaText}>Tiempo real</Text>
-            </View>
-          </View>
+              <View style={styles.spentRow}>
+                <Text style={styles.spentLabel}>GASTADO</Text>
+                <Text style={styles.spentAmount}>{formatCurrency(periodSpent)}</Text>
+              </View>
+              <View style={styles.summaryMeta}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.metaText}>
+                    {periodTransactions.length}{' '}
+                    {periodTransactions.length === 1 ? 'gasto' : 'gastos'}
+                  </Text>
+                </View>
+                <View style={styles.metaDivider} />
+                <View style={styles.metaItem}>
+                  <Ionicons name="people-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.metaText}>Tiempo real</Text>
+                </View>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.summaryLabel}>GASTO TOTAL</Text>
+              <Text style={styles.summaryAmount}>{formatCurrency(monthTotal)}</Text>
+              <View style={styles.summaryMeta}>
+                <View style={styles.metaItem}>
+                  <Ionicons name="receipt-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.metaText}>
+                    {transactionCount} {transactionCount === 1 ? 'gasto' : 'gastos'}
+                  </Text>
+                </View>
+                <View style={styles.metaDivider} />
+                <View style={styles.metaItem}>
+                  <Ionicons name="people-outline" size={14} color={colors.textMuted} />
+                  <Text style={styles.metaText}>Tiempo real</Text>
+                </View>
+              </View>
+            </>
+          )}
         </View>
-
-        {/* ── Category Breakdown ──────────────────── */}
-        {!isFirstTime && categoryBreakdown.length > 0 && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Por categoría</Text>
-            <View style={styles.categoryList}>
-              {categoryBreakdown.map((item) => (
-                <CategoryRow
-                  key={item.id}
-                  icon={item.category.icon}
-                  name={item.category.name}
-                  amount={item.amount}
-                  percentage={item.percentage}
-                  barColor={item.category.color}
-                />
-              ))}
-            </View>
-          </View>
-        )}
 
         {/* ── Recent Transactions ─────────────────── */}
         {!isFirstTime && recentTransactions.length > 0 && (
@@ -221,10 +229,6 @@ export default function DashboardScreen() {
               <Ionicons name="wallet-outline" size={48} color={colors.gold} />
             </View>
             <Text style={styles.emptyTitle}>Sin gastos este mes</Text>
-            <Text style={styles.emptySubtitle}>
-              Presiona el botón + para registrar tu primer gasto.{'\n'}
-              Se sincronizará al instante con el otro teléfono.
-            </Text>
           </View>
         )}
 
@@ -244,91 +248,12 @@ export default function DashboardScreen() {
   );
 }
 
-// ─── Category Row Component ─────────────────────────────
-function CategoryRow({
-  icon,
-  name,
-  amount,
-  percentage,
-  barColor,
-}: {
-  icon: string;
-  name: string;
-  amount: number;
-  percentage: number;
-  barColor: string;
-}) {
-  return (
-    <View style={categoryStyles.row}>
-      <View style={categoryStyles.left}>
-        <View style={[categoryStyles.iconWrap, { backgroundColor: barColor + '20' }]}>
-          <Ionicons name={icon as any} size={18} color={barColor} />
-        </View>
-        <Text style={categoryStyles.name}>{name}</Text>
-      </View>
-      <Text style={categoryStyles.amount}>{formatCurrency(amount)}</Text>
-      {/* Mini progress bar */}
-      <View style={categoryStyles.barBg}>
-        <View
-          style={[
-            categoryStyles.barFill,
-            { width: `${Math.max(percentage, 2)}%`, backgroundColor: barColor },
-          ]}
-        />
-      </View>
-    </View>
-  );
-}
-
-const categoryStyles = StyleSheet.create({
-  row: {
-    paddingVertical: spacing.md,
-    gap: spacing.xs,
-  },
-  left: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.md,
-  },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: borderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  name: {
-    ...typography.body,
-    color: colors.textPrimary,
-    flex: 1,
-  },
-  amount: {
-    ...typography.bodyBold,
-    color: colors.textPrimary,
-    textAlign: 'right',
-  },
-  barBg: {
-    height: 4,
-    backgroundColor: colors.divider,
-    borderRadius: 2,
-    overflow: 'hidden',
-  },
-  barFill: {
-    height: '100%',
-    borderRadius: 2,
-  },
-});
-
 // ─── Transaction Row Component ──────────────────────────
 function TransactionRow({ transaction }: { transaction: Transaction }) {
-  const category = getCategory(transaction.category);
-
   return (
     <View style={txStyles.row}>
-      <View
-        style={[txStyles.iconWrap, { backgroundColor: category.color + '20' }]}
-      >
-        <Ionicons name={category.icon as any} size={20} color={category.color} />
+      <View style={txStyles.iconWrap}>
+        <Ionicons name="receipt-outline" size={20} color={colors.gold} />
       </View>
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
@@ -356,6 +281,7 @@ const txStyles = StyleSheet.create({
     borderRadius: borderRadius.sm,
     justifyContent: 'center',
     alignItems: 'center',
+    backgroundColor: colors.goldLight + '40',
   },
   info: {
     flex: 1,
@@ -380,10 +306,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  accentBar: {
-    height: 4,
-    backgroundColor: colors.gold,
   },
   scroll: {
     flex: 1,
@@ -441,6 +363,24 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     letterSpacing: -0.5,
   },
+  summaryAmountNegative: {
+    color: colors.error,
+  },
+  spentRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+  },
+  spentLabel: {
+    ...typography.label,
+    color: colors.textMuted,
+    letterSpacing: 1,
+  },
+  spentAmount: {
+    ...typography.bodyBold,
+    color: colors.textSecondary,
+  },
   summaryMeta: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -472,12 +412,6 @@ const styles = StyleSheet.create({
     color: colors.textSecondary,
     letterSpacing: 1,
     marginBottom: spacing.md,
-  },
-  categoryList: {
-    backgroundColor: colors.surface,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg,
-    ...shadows.sm,
   },
   recentList: {
     backgroundColor: colors.surface,

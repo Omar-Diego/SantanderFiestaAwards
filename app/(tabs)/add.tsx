@@ -13,8 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import firestore from '@react-native-firebase/firestore';
-import { CATEGORIES } from '../../src/utils/categories';
+import { Timestamp } from '@react-native-firebase/firestore';
 import { addTransaction } from '../../src/services/transactions';
 import { getGroupId } from '../../src/utils/storage';
 import { colors, typography, spacing, borderRadius, shadows } from '../../src/theme';
@@ -43,16 +42,13 @@ export default function AddTransactionScreen() {
 
   // Form fields
   const [amountText, setAmountText] = useState('');
-  const [categoryId, setCategoryId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
-  const [notes, setNotes] = useState('');
   const [date, setDate] = useState(new Date());
 
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   const descRef = useRef<TextInput>(null);
-  const notesRef = useRef<TextInput>(null);
 
   // Load groupId
   useEffect(() => {
@@ -78,7 +74,6 @@ export default function AddTransactionScreen() {
 
     const amount = parseAmount(amountText);
     if (amount <= 0) errs.amount = 'Ingresa un monto válido';
-    if (!categoryId) errs.category = 'Selecciona una categoría';
     if (!description.trim()) errs.description = 'Describe el gasto';
 
     setErrors(errs);
@@ -96,15 +91,13 @@ export default function AddTransactionScreen() {
     setSubmitting(true);
     try {
       await addTransaction(groupId, {
-        date: firestore.Timestamp.fromDate(date),
+        date: Timestamp.fromDate(date),
         amount: parseAmount(amountText),
         description: description.trim(),
-        category: categoryId!,
-        notes: notes.trim() || undefined,
       });
 
       // Success — go back to dashboard
-      Alert.alert('✅ Gasto registrado', '', [
+      Alert.alert('Gasto registrado', '', [
         { text: 'OK', onPress: () => router.back() },
       ]);
     } catch (err) {
@@ -118,7 +111,6 @@ export default function AddTransactionScreen() {
   if (loading) {
     return (
       <SafeAreaView style={styles.container} edges={['top']}>
-        <View style={styles.accentBar} />
         <View style={styles.centerContent}>
           <Text style={styles.loadingText}>Cargando...</Text>
         </View>
@@ -127,14 +119,12 @@ export default function AddTransactionScreen() {
   }
 
   const amount = parseAmount(amountText);
-  const canSubmit = amount > 0 && !!categoryId && description.trim().length > 0;
+  const canSubmit = amount > 0 && description.trim().length > 0;
   const dateLabel = format(date, "EEEE d 'de' MMMM", { locale: es });
   const dateLabelCapitalized = dateLabel.charAt(0).toUpperCase() + dateLabel.slice(1);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      <View style={styles.accentBar} />
-
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
@@ -204,55 +194,6 @@ export default function AddTransactionScreen() {
             </View>
           </View>
 
-          {/* ── Category Grid ────────────────────── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>CATEGORÍA</Text>
-            {errors.category && (
-              <Text style={styles.errorText}>{errors.category}</Text>
-            )}
-            <View style={styles.categoryGrid}>
-              {CATEGORIES.map((cat) => {
-                const selected = categoryId === cat.id;
-                return (
-                  <TouchableOpacity
-                    key={cat.id}
-                    style={[
-                      styles.categoryItem,
-                      selected && {
-                        backgroundColor: cat.color + '20',
-                        borderColor: cat.color,
-                      },
-                    ]}
-                    onPress={() => {
-                      setCategoryId(cat.id);
-                      if (errors.category) setErrors((e) => ({ ...e, category: '' }));
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <View
-                      style={[
-                        styles.categoryIconWrap,
-                        { backgroundColor: cat.color + '15' },
-                        selected && { backgroundColor: cat.color + '30' },
-                      ]}
-                    >
-                      <Ionicons name={cat.icon as any} size={22} color={cat.color} />
-                    </View>
-                    <Text
-                      style={[
-                        styles.categoryName,
-                        selected && { color: cat.color, fontWeight: '600' },
-                      ]}
-                      numberOfLines={1}
-                    >
-                      {cat.name}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-
           {/* ── Description ──────────────────────── */}
           <View style={styles.section}>
             <Text style={styles.sectionLabel}>DESCRIPCIÓN</Text>
@@ -269,8 +210,8 @@ export default function AddTransactionScreen() {
               }}
               placeholder="Ej: Súper semanal"
               placeholderTextColor={colors.textMuted}
-              returnKeyType="next"
-              onSubmitEditing={() => notesRef.current?.focus()}
+              returnKeyType="done"
+              onSubmitEditing={handleSubmit}
               maxLength={60}
             />
           </View>
@@ -298,22 +239,6 @@ export default function AddTransactionScreen() {
             </View>
           </View>
 
-          {/* ── Notes (optional) ──────────────────── */}
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>NOTAS (opcional)</Text>
-            <TextInput
-              ref={notesRef}
-              style={[styles.textInput, styles.notesInput]}
-              value={notes}
-              onChangeText={setNotes}
-              placeholder="Notas adicionales..."
-              placeholderTextColor={colors.textMuted}
-              multiline
-              numberOfLines={2}
-              maxLength={200}
-            />
-          </View>
-
           {/* ── Submit Button ──────────────────────── */}
           <View style={styles.submitSection}>
             <TouchableOpacity
@@ -334,10 +259,6 @@ export default function AddTransactionScreen() {
                 {submitting ? 'Registrando...' : 'REGISTRAR GASTO'}
               </Text>
             </TouchableOpacity>
-
-            <Text style={styles.syncHint}>
-              Se sincronizará al instante con el otro teléfono
-            </Text>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -350,10 +271,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: colors.background,
-  },
-  accentBar: {
-    height: 4,
-    backgroundColor: colors.gold,
   },
   scroll: {
     flex: 1,
@@ -460,37 +377,6 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // Category Grid
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  categoryItem: {
-    width: '18%',
-    alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderRadius: borderRadius.md,
-    borderWidth: 1.5,
-    borderColor: 'transparent',
-    backgroundColor: colors.surface,
-    ...shadows.sm,
-  },
-  categoryIconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  categoryName: {
-    ...typography.small,
-    color: colors.textSecondary,
-    fontSize: 10,
-    textAlign: 'center',
-  },
-
   // Text Input
   textInput: {
     height: 52,
@@ -501,11 +387,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     ...typography.body,
     color: colors.textPrimary,
-  },
-  notesInput: {
-    height: 72,
-    paddingTop: spacing.md,
-    textAlignVertical: 'top',
   },
 
   // Date

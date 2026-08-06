@@ -18,6 +18,7 @@
     },
     "android": {
       "package": "com.santander.fiestaawards",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "backgroundColor": "#F5F5F0",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -32,15 +33,13 @@
     "plugins": [
       "expo-router",
       "@react-native-firebase/app",
-      "@react-native-firebase/firestore",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "googleServicesFile": "./google-services.json"
-          }
-        }
-      ]
-    ]
+      "expo-build-properties"
+    ],
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "2b48617e-af20-4b8b-9f68-9f211a8bb8e8"
+      }
+    }
   }
 }

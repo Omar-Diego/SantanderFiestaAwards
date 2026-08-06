@@ -1,0 +1,5 @@
+allowBuilds:
+  '@firebase/util': true
+  protobufjs: true
+overrides:
+  postcss: 8.5.19

@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import type { ColorValue } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Pressable, type ColorValue, type PressableProps } from 'react-native';
 import { colors, typography } from '../../src/theme';
 
 function TabIcon({
@@ -12,7 +12,13 @@ function TabIcon({
   color: ColorValue;
   size: number;
 }) {
-  return <Ionicons name={name as any} size={size} color={color as string} />;
+  return (
+    <MaterialCommunityIcons name={name as any} size={size} color={color as string} />
+  );
+}
+
+function TabBarButton({ href, ...props }: PressableProps & { href?: string }) {
+  return <Pressable {...props} android_ripple={{ color: 'transparent' }} />;
 }
 
 export default function TabLayout() {
@@ -34,6 +40,12 @@ export default function TabLayout() {
           ...typography.small,
           fontSize: 11,
         },
+        tabBarItemStyle: {
+          backgroundColor: 'transparent',
+        },
+        tabBarActiveBackgroundColor: 'transparent',
+        tabBarInactiveBackgroundColor: 'transparent',
+        tabBarButton: TabBarButton,
       }}
     >
       <Tabs.Screen
@@ -51,6 +63,15 @@ export default function TabLayout() {
           title: 'Gasto',
           tabBarIcon: ({ color, size }) => (
             <TabIcon name="plus-circle" color={color} size={size} />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="budget"
+        options={{
+          title: 'Presupuesto',
+          tabBarIcon: ({ color, size }) => (
+            <TabIcon name="wallet" color={color} size={size} />
           ),
         }}
       />

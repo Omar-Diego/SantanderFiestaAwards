@@ -93,7 +93,7 @@ export default function SetupScreen() {
 
         <View style={styles.card}>
           <GoldButton
-            title="🏠  CREAR NUEVO GRUPO"
+            title="CREAR NUEVO GRUPO"
             onPress={() => {
               setGroupCode('');
               setCodeError('');
@@ -110,7 +110,7 @@ export default function SetupScreen() {
 
         <View style={styles.card}>
           <GoldButton
-            title="🔗  UNIRSE A UN GRUPO"
+            title="UNIRSE A UN GRUPO"
             variant="outline"
             onPress={() => {
               setGroupCode('');
@@ -152,7 +152,7 @@ export default function SetupScreen() {
           </View>
 
           <GoldButton
-            title="✨  CREAR GRUPO"
+            title="CREAR GRUPO"
             onPress={handleCreateGroup}
             loading={submitting}
           />
@@ -201,7 +201,7 @@ export default function SetupScreen() {
         </View>
 
         <GoldButton
-          title="🔗  UNIRSE AL GRUPO"
+          title="UNIRSE AL GRUPO"
           onPress={handleJoinGroup}
           loading={submitting}
         />

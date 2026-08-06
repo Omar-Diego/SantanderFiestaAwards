@@ -1,4 +1,4 @@
-import firestore from '@react-native-firebase/firestore';
+import { getFirestore, collection, doc } from '@react-native-firebase/firestore';
 
 /**
  * Firebase initialization for Santander Fiesta Awards.
@@ -6,15 +6,12 @@ import firestore from '@react-native-firebase/firestore';
  * On Android, @react-native-firebase automatically reads
  * google-services.json, so no manual config is needed here.
  * The SDK auto-initializes when the app starts.
+ *
+ * Offline persistence is enabled by default in React Native Firebase.
  */
 
 /** Singleton Firestore instance */
-export const db = firestore();
-
-/** Enable offline persistence so the app works without internet */
-db.settings({
-  persistence: true,
-});
+export const db = getFirestore();
 
 /** Collection paths */
 export const COLLECTIONS = {
@@ -23,10 +20,10 @@ export const COLLECTIONS = {
 
 /** Helper to get a group's transactions subcollection reference */
 export function getTransactionsRef(groupId: string) {
-  return db.collection(COLLECTIONS.groups).doc(groupId).collection('transactions');
+  return collection(doc(collection(db, COLLECTIONS.groups), groupId), 'transactions');
 }
 
 /** Helper to get a group document reference */
 export function getGroupRef(groupId: string) {
-  return db.collection(COLLECTIONS.groups).doc(groupId);
+  return doc(collection(db, COLLECTIONS.groups), groupId);
 }

@@ -1,5 +1,18 @@
-import firestore, { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
-import { db, getTransactionsRef } from './firebase';
+import {
+  addDoc,
+  deleteDoc,
+  doc,
+  getDoc,
+  getDocs,
+  onSnapshot,
+  orderBy,
+  query,
+  serverTimestamp,
+  updateDoc,
+  type DocumentSnapshot,
+  type Timestamp,
+} from '@react-native-firebase/firestore';
+import { getTransactionsRef } from './firebase';
 import { getOrCreateDeviceId } from '../utils/storage';
 import type { Transaction } from '../types';
 
@@ -13,14 +26,12 @@ async function ensureDeviceId(): Promise<string> {
 }
 
 /** Convert Firestore timestamp to Date */
-function timestampToDate(ts: FirebaseFirestoreTypes.Timestamp): Date {
+function timestampToDate(ts: Timestamp): Date {
   return ts.toDate();
 }
 
 /** Convert a Firestore document to our Transaction model */
-function docToTransaction(
-  doc: FirebaseFirestoreTypes.DocumentSnapshot
-): Transaction | null {
+function docToTransaction(doc: DocumentSnapshot): Transaction | null {
   const data = doc.data();
   if (!data) return null;
 
@@ -29,8 +40,6 @@ function docToTransaction(
     date: timestampToDate(data.date),
     amount: data.amount,
     description: data.description,
-    category: data.category,
-    notes: data.notes,
     createdAt: timestampToDate(data.createdAt),
     deviceId: data.deviceId,
     updatedAt: data.updatedAt ? timestampToDate(data.updatedAt) : undefined,
@@ -38,11 +47,9 @@ function docToTransaction(
 }
 
 interface AddTransactionData {
-  date: FirebaseFirestoreTypes.Timestamp;
+  date: Timestamp;
   amount: number;
   description: string;
-  category: string;
-  notes?: string;
 }
 
 /** Add a new transaction */
@@ -51,12 +58,12 @@ export async function addTransaction(
   data: AddTransactionData
 ): Promise<string> {
   const ref = getTransactionsRef(groupId);
-  const doc = await ref.add({
+  const docRef = await addDoc(ref, {
     ...data,
-    createdAt: firestore.FieldValue.serverTimestamp(),
+    createdAt: serverTimestamp(),
     deviceId: await ensureDeviceId(),
   });
-  return doc.id;
+  return docRef.id;
 }
 
 /** Update an existing transaction */
@@ -65,10 +72,10 @@ export async function updateTransaction(
   transactionId: string,
   data: Partial<AddTransactionData>
 ): Promise<void> {
-  const ref = getTransactionsRef(groupId).doc(transactionId);
-  await ref.update({
+  const ref = doc(getTransactionsRef(groupId), transactionId);
+  await updateDoc(ref, {
     ...data,
-    updatedAt: firestore.FieldValue.serverTimestamp(),
+    updatedAt: serverTimestamp(),
   });
 }
 
@@ -77,8 +84,8 @@ export async function deleteTransaction(
   groupId: string,
   transactionId: string
 ): Promise<void> {
-  const ref = getTransactionsRef(groupId).doc(transactionId);
-  await ref.delete();
+  const ref = doc(getTransactionsRef(groupId), transactionId);
+  await deleteDoc(ref);
 }
 
 /** Get a single transaction by ID */
@@ -86,19 +93,17 @@ export async function getTransaction(
   groupId: string,
   transactionId: string
 ): Promise<Transaction | null> {
-  const ref = getTransactionsRef(groupId).doc(transactionId);
-  const doc = await ref.get();
-  return docToTransaction(doc);
+  const ref = doc(getTransactionsRef(groupId), transactionId);
+  const snapshot = await getDoc(ref);
+  return docToTransaction(snapshot);
 }
 
 /** Get all transactions for a group */
-export async function getTransactions(
-  groupId: string
-): Promise<Transaction[]> {
-  const ref = getTransactionsRef(groupId);
-  const snapshot = await ref.orderBy('date', 'desc').get();
+export async function getTransactions(groupId: string): Promise<Transaction[]> {
+  const q = query(getTransactionsRef(groupId), orderBy('date', 'desc'));
+  const snapshot = await getDocs(q);
   return snapshot.docs
-    .map((doc) => docToTransaction(doc))
+    .map((d) => docToTransaction(d))
     .filter((t): t is Transaction => t !== null);
 }
 
@@ -108,13 +113,13 @@ export function subscribeToTransactions(
   onUpdate: (transactions: Transaction[]) => void,
   onError?: (error: Error) => void
 ): () => void {
-  const ref = getTransactionsRef(groupId);
-  const query = ref.orderBy('date', 'desc');
+  const q = query(getTransactionsRef(groupId), orderBy('date', 'desc'));
 
-  const unsubscribe = query.onSnapshot(
+  const unsubscribe = onSnapshot(
+    q,
     (snapshot) => {
       const transactions = snapshot.docs
-        .map((doc) => docToTransaction(doc))
+        .map((d) => docToTransaction(d))
         .filter((t): t is Transaction => t !== null);
       onUpdate(transactions);
     },

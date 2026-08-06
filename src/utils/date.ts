@@ -48,6 +48,22 @@ export function getCurrentPeriodRange(cutoffDay: number, now: Date = new Date())
   return { start: cutoffDateFor(prevYear, prevMonth, cutoffDay), end: thisCutoff };
 }
 
+/** Number of weeks a period spans (whole or partial), minimum 1 */
+export function getWeeksInPeriod(range: PeriodRange): number {
+  const totalDays = Math.max(
+    1,
+    Math.round((range.end.getTime() - range.start.getTime()) / 86400000)
+  );
+  return Math.max(1, Math.ceil(totalDays / 7));
+}
+
+/** 1-based index of the current week inside a period (capped at the last week) */
+export function getCurrentWeekOfPeriod(range: PeriodRange, now: Date = new Date()): number {
+  const elapsedMs = Math.max(0, now.getTime() - range.start.getTime());
+  const elapsedDays = Math.floor(elapsedMs / 86400000);
+  return Math.min(Math.floor(elapsedDays / 7) + 1, getWeeksInPeriod(range));
+}
+
 /** Human label for a period range, e.g. "19 jul – 18 ago" */
 export function getPeriodLabel(range: PeriodRange): string {
   const inclusiveEnd = new Date(range.end.getTime() - 1);

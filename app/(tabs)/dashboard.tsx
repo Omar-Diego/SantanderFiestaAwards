@@ -16,10 +16,9 @@ import AmbientGlow from '../../src/components/AmbientGlow';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
-import { getPeriodLabel, groupTransactionsByDay } from '../../src/utils/date';
+import { groupTransactionsByDay } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
-import { format } from 'date-fns';
 import type { Transaction } from '../../src/types';
 
 // ─── Currency formatter ─────────────────────────────────
@@ -33,20 +32,10 @@ function formatCurrency(amount: number): string {
   return fmt.format(amount);
 }
 
-/** Payment due date: cutoff day of the current month, e.g. "01/09" */
-function formatPaymentDue(cutoffDay: number): string {
-  const now = new Date();
-  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
-  const day = Math.min(cutoffDay, lastDay);
-  return format(new Date(now.getFullYear(), now.getMonth(), day), 'dd/MM');
-}
-
 // ─── Quick actions (Revolut-style circular shortcuts) ───
 const QUICK_ACTIONS = [
   { label: 'Registrar', icon: 'plus', route: '/add' },
-  { label: 'Historial', icon: 'format-list-bulleted', route: '/history' },
-  { label: 'Presupuesto', icon: 'finance', route: '/budget' },
-  { label: 'Alertas', icon: 'bell-outline', route: '/alerts' },
+  { label: 'Presupuesto', icon: 'finance', route: '/budget?edit=1' },
 ] as const;
 
 // ─── Main Dashboard (Home) ──────────────────────────────
@@ -76,8 +65,11 @@ export default function DashboardScreen() {
   const {
     config: budgetConfig,
     loading: budgetLoading,
-    period,
     remaining: budgetRemaining,
+    weeksInPeriod,
+    currentWeek,
+    weeklyAllowance,
+    weeklyAvailable,
   } = useBudget(groupId, transactions);
 
   const loading = !storageLoaded || txLoading || budgetLoading;
@@ -209,24 +201,45 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* ── Period (Próximo) ──────────────────────── */}
+        {/* ── Weekly available (replaces PERÍODO) ────── */}
         <View style={styles.section}>
           <TouchableOpacity
             style={styles.periodCard}
-            onPress={() => router.push('/budget')}
+            onPress={() => router.push('/budget?edit=1')}
             activeOpacity={0.7}
           >
             <View style={styles.periodLeft}>
-              <Text style={styles.sectionTitle}>PERÍODO</Text>
-              <Text style={styles.periodLabel}>{getPeriodLabel(period)}</Text>
+              <Text style={styles.sectionTitle}>
+                DISPONIBLE ESTA SEMANA
+              </Text>
+              {budgetConfig && weeklyAvailable !== null ? (
+                <>
+                  <Text
+                    style={[
+                      styles.weekAmount,
+                      {
+                        color:
+                          weeklyAvailable < 0 ? darkColors.red : darkColors.green,
+                      },
+                    ]}
+                  >
+                    {formatCurrency(weeklyAvailable)}
+                  </Text>
+                  <Text style={styles.weekCaption}>
+                    Semana {currentWeek} de {weeksInPeriod} ·{' '}
+                    {formatCurrency(weeklyAllowance)} por semana
+                  </Text>
+                </>
+              ) : (
+                <>
+                  <Text style={styles.weekAmountMuted}>Sin presupuesto</Text>
+                  <Text style={styles.weekCaption}>
+                    Define una meta para ver tu disponible semanal
+                  </Text>
+                </>
+              )}
             </View>
-            {budgetConfig ? (
-              <View style={styles.duePill}>
-                <Text style={styles.duePillText}>
-                  Corte el {formatPaymentDue(budgetConfig.cutoffDay)}
-                </Text>
-              </View>
-            ) : (
+            {!budgetConfig && (
               <View style={styles.duePill}>
                 <Text style={styles.duePillText}>Define presupuesto</Text>
               </View>
@@ -445,7 +458,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Period card
+  // Weekly available card (replaces PERÍODO)
   periodCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -455,13 +468,25 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
     borderColor: darkColors.borderSubtle,
     padding: spacing.lg,
+    gap: spacing.md,
   },
   periodLeft: {
     flex: 1,
   },
-  periodLabel: {
-    ...typography.bodyBold,
-    color: darkColors.textPrimary,
+  weekAmount: {
+    fontSize: 32,
+    fontWeight: '700',
+    letterSpacing: -0.5,
+    marginTop: spacing.xs,
+  },
+  weekAmountMuted: {
+    ...typography.h3,
+    color: darkColors.textMuted,
+    marginTop: spacing.xs,
+  },
+  weekCaption: {
+    ...typography.caption,
+    color: darkColors.textSecondary,
     marginTop: spacing.xs,
   },
   duePill: {

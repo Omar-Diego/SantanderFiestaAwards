@@ -132,7 +132,6 @@ export default function SetupScreen() {
         <View style={styles.card}>
           <PrimaryButton
             title="UNIRSE A UN GRUPO"
-            variant="outline"
             onPress={() => {
               setGroupCode('');
               setCodeError('');

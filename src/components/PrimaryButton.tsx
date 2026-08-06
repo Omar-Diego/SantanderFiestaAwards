@@ -5,7 +5,6 @@ import { darkColors, typography, borderRadius, spacing, shadows } from '../theme
 interface PrimaryButtonProps {
   title: string;
   onPress: () => void;
-  variant?: 'solid' | 'outline';
   loading?: boolean;
   disabled?: boolean;
   icon?: string;
@@ -14,28 +13,27 @@ interface PrimaryButtonProps {
 
 /**
  * Primary action button — the app's "essential action" control.
- * Solid red (Santander accent) by default; outline variant for secondary
- * essentials. Icon + label, centered, full width.
+ * Unified OUTLINE style (design system): transparent background, red border
+ * and icon without a fill (consistent with the "Editar presupuesto" button).
+ * Icon + label, centered, full width.
  */
 export default function PrimaryButton({
   title,
   onPress,
-  variant = 'solid',
   loading = false,
   disabled = false,
   icon,
   compact = false,
 }: PrimaryButtonProps) {
-  const solid = variant === 'solid';
   const isDisabled = disabled || loading;
-  const fg = solid ? '#FFFFFF' : darkColors.red;
+  const fg = darkColors.red;
 
   return (
     <TouchableOpacity
       style={[
         styles.button,
         compact ? styles.buttonCompact : styles.buttonRegular,
-        solid ? styles.solid : styles.outline,
+        styles.outline,
         isDisabled && styles.disabled,
       ]}
       onPress={onPress}
@@ -82,9 +80,6 @@ const styles = StyleSheet.create({
   buttonCompact: {
     height: 44,
     ...shadows.sm,
-  },
-  solid: {
-    backgroundColor: darkColors.red,
   },
   outline: {
     backgroundColor: 'transparent',

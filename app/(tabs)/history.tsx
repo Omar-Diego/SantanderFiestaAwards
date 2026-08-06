@@ -40,6 +40,23 @@ const MONTHS = [
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
 
+/** Friendly day header: "Hoy" / "Ayer" / "Lunes 12 de agosto" */
+function dayLabel(date: Date): string {
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((startToday.getTime() - startDay.getTime()) / 86400000);
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  const label = format(date, 'EEEE d MMMM', { locale: es });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
+// Flat list items: date headers + transaction cards
+type ListItem =
+  | { kind: 'header'; key: string; label: string }
+  | { kind: 'tx'; key: string; transaction: Transaction };
+
 // ─── History Screen (Actividad) ──────────────────────────
 export default function HistoryScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -80,6 +97,24 @@ export default function HistoryScreen() {
     () => filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
     [filteredTransactions]
   );
+
+  // ─── Grouped list (by day, newest first) ────────────
+  const groupedItems = useMemo<ListItem[]>(() => {
+    const sorted = [...filteredTransactions].sort(
+      (a, b) => b.date.getTime() - a.date.getTime()
+    );
+    const items: ListItem[] = [];
+    let lastDayKey = '';
+    for (const tx of sorted) {
+      const dayKey = format(tx.date, 'yyyy-MM-dd');
+      if (dayKey !== lastDayKey) {
+        items.push({ kind: 'header', key: `h-${dayKey}`, label: dayLabel(tx.date) });
+        lastDayKey = dayKey;
+      }
+      items.push({ kind: 'tx', key: tx.id, transaction: tx });
+    }
+    return items;
+  }, [filteredTransactions]);
 
   // ─── Month navigation ───────────────────────────────
   function changeMonth(delta: number) {
@@ -126,14 +161,17 @@ export default function HistoryScreen() {
     [groupId]
   );
 
-  // ─── Render Swipeable Item ────────────────────────────
+  // ─── Render grouped item ─────────────────────────────
   const renderItem = useCallback(
-    ({ item }: { item: Transaction }) => {
+    ({ item }: { item: ListItem }) => {
+      if (item.kind === 'header') {
+        return <Text style={styles.dayHeader}>{item.label}</Text>;
+      }
       return (
         <SwipeableRow
-          transaction={item}
-          onDelete={() => confirmDelete(item.id)}
-          isDeleting={deleting === item.id}
+          transaction={item.transaction}
+          onDelete={() => confirmDelete(item.transaction.id)}
+          isDeleting={deleting === item.transaction.id}
         />
       );
     },
@@ -205,30 +243,29 @@ export default function HistoryScreen() {
         />
       </View>
 
-      {/* ── Transaction list (card) ────────────────── */}
-      <View style={styles.listCard}>
-        {filteredTransactions.length > 0 ? (
-          <FlashList
-            data={filteredTransactions}
-            keyExtractor={(item: Transaction) => item.id}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-            showsVerticalScrollIndicator={false}
+      {/* ── Transactions (own card per expense) ────── */}
+      {groupedItems.length > 0 ? (
+        <FlashList
+          data={groupedItems}
+          keyExtractor={(item: ListItem) => item.key}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          style={styles.list}
+        />
+      ) : (
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons
+            name="receipt-outline"
+            size={48}
+            color={darkColors.textMuted}
           />
-        ) : (
-          <View style={styles.emptyState}>
-            <MaterialCommunityIcons
-              name="receipt-outline"
-              size={48}
-              color={darkColors.textMuted}
-            />
-            <Text style={styles.emptyTitle}>Sin gastos</Text>
-            <Text style={styles.emptySubtitle}>
-              No hay gastos registrados este mes
-            </Text>
-          </View>
-        )}
-      </View>
+          <Text style={styles.emptyTitle}>Sin gastos</Text>
+          <Text style={styles.emptySubtitle}>
+            No hay gastos registrados este mes
+          </Text>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
@@ -243,8 +280,6 @@ function SwipeableRow({
   onDelete: () => void;
   isDeleting: boolean;
 }) {
-  const dateFormatted = format(transaction.date, 'd MMM', { locale: es });
-
   const renderRightActions = useCallback(
     () => (
       <View style={swipeStyles.action}>
@@ -277,13 +312,13 @@ function SwipeableRow({
       overshootRight={false}
       rightThreshold={40}
     >
-      <View style={txStyles.row}>
+      {/* Each expense is its own card */}
+      <View style={txStyles.card}>
         <MerchantAvatar description={transaction.description} />
         <View style={txStyles.info}>
           <Text style={txStyles.description} numberOfLines={1}>
             {transaction.description}
           </Text>
-          <Text style={txStyles.date}>{dateFormatted}</Text>
         </View>
         <Text style={txStyles.amount}>-{formatCurrency(transaction.amount)}</Text>
       </View>
@@ -298,8 +333,8 @@ const swipeStyles = StyleSheet.create({
     alignItems: 'center',
     width: 84,
     borderRadius: borderRadius.md,
-    marginVertical: spacing.sm,
     marginRight: spacing.sm,
+    marginBottom: spacing.sm, // matches the card's bottom margin so the pill aligns with the card
   },
   actionInner: {
     alignItems: 'center',
@@ -315,16 +350,18 @@ const swipeStyles = StyleSheet.create({
   },
 });
 
-// ─── Transaction Row Styles ─────────────────────────────
+// ─── Transaction Card Styles ────────────────────────────
 const txStyles = StyleSheet.create({
-  row: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    paddingHorizontal: spacing.lg,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    padding: spacing.lg,
     gap: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: darkColors.divider,
+    marginBottom: spacing.sm,
   },
   info: {
     flex: 1,
@@ -333,11 +370,6 @@ const txStyles = StyleSheet.create({
     ...typography.body,
     color: darkColors.textPrimary,
     fontWeight: '600',
-  },
-  date: {
-    marginTop: 2,
-    ...typography.small,
-    color: darkColors.textMuted,
   },
   amount: {
     ...typography.bodyBold,
@@ -423,19 +455,21 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
 
-  // List card
-  listCard: {
+  // Grouped list
+  list: {
     flex: 1,
-    marginHorizontal: spacing.xl,
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    overflow: 'hidden',
-    marginBottom: 56,
   },
   listContent: {
-    paddingBottom: spacing.md,
+    paddingHorizontal: spacing.xl,
+    paddingBottom: 48,
+  },
+  dayHeader: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
 
   // Empty
@@ -444,7 +478,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: spacing.xxl,
-    paddingVertical: spacing.huge,
+    paddingBottom: spacing.huge,
     gap: spacing.sm,
   },
   emptyTitle: {

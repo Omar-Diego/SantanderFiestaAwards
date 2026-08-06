@@ -80,10 +80,10 @@ Estructura vertical de la pantalla principal:
 
 ### 4.2 Balance Central
 - Todo el bloque **centrado horizontalmente**
-- Label pequeño: **"TARJETA FIESTA AWARDS · SALDO ACTUAL"** — gris claro
+- Label pequeño: **"SALDO TOTAL"** — gris claro (ya sin referencia a la tarjeta)
 - Monto principal: **gastado este mes** — blanco, grande, negrita
 - **"Disponible: $X"** — verde si sobra presupuesto, rojo si te pasas, gris sin presupuesto
-- Botón **píldora "Presupuesto"** debajo → lleva a Crédito
+- ~~Botón píldora "Presupuesto"~~ — **eliminado**: se llega a Crédito desde la acción rápida
 - Detrás del balance: **glow ambiental** (gradientes radiales rojo/morado de baja opacidad)
 
 ### 4.3 Acciones Rápidas (Quick Actions)
@@ -94,7 +94,7 @@ Estructura vertical de la pantalla principal:
 - Card `#1C1C1E` con **borde sutil** `rgba(255,255,255,0.08)`, radio 16px
 - Cada gasto: **círculo de color del comercio** (color determinista por descripción) con la **inicial** en blanco · descripción bold + fecha gris · monto blanco a la derecha
 - **"Ver todo"** centrado abajo (rojo) → Actividad
-- Estado vacío: icono receipt gris + **"No expenses yet this month"**
+- Estado vacío: icono receipt gris + **"No hay gastos este mes"**
 
 ### 4.5 Tarjeta Período (Próximo)
 - Card con **"PERÍODO"** + rango del período (ej. "19 jul – 18 ago")
@@ -119,7 +119,7 @@ Estructura vertical de la pantalla principal:
 |:-------------|:----------------|:------|
 | **Inicio** | Dashboard (`dashboard.tsx`) | Balance → "Spent this month"; widgets → presupuesto/restante |
 | **Crédito** | Presupuesto (`budget.tsx`) | Reinterpreta "límite de crédito" → presupuesto del grupo |
-| **Actividad** | Historial (`history.tsx`) | Lista de gastos con "See all" |
+| **Actividad** | Historial (`history.tsx`) | Lista de gastos con "Ver todo" |
 | **Alertas** | `alerts.tsx` | Alertas de presupuesto (excedido / cerca del límite / sin presupuesto) |
 | *(sin mapeo)* | Registrar gasto (`add.tsx`) | Se mantiene como botón de acción central o modal |
 

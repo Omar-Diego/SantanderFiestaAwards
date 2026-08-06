@@ -191,7 +191,7 @@ export default function DashboardScreen() {
 
         {/* ── Balance ───────────────────────────────── */}
         <View style={styles.balanceSection}>
-          <Text style={styles.balanceEyebrow}>TARJETA FIESTA AWARDS · SALDO ACTUAL</Text>
+          <Text style={styles.balanceEyebrow}>SALDO TOTAL</Text>
           <Text style={styles.balanceAmount}>{formatCurrency(monthTotal)}</Text>
           <Text style={styles.availableText}>
             Disponible:{' '}
@@ -199,18 +199,6 @@ export default function DashboardScreen() {
               {budgetConfig ? formatCurrency(budgetRemaining) : 'Sin presupuesto'}
             </Text>
           </Text>
-          <TouchableOpacity
-            style={styles.pillButton}
-            onPress={() => router.push('/budget')}
-            activeOpacity={0.7}
-          >
-            <MaterialCommunityIcons
-              name="wallet-outline"
-              size={16}
-              color={darkColors.textPrimary}
-            />
-            <Text style={styles.pillButtonText}>Presupuesto</Text>
-          </TouchableOpacity>
         </View>
 
         {/* ── Quick actions ─────────────────────────── */}
@@ -259,7 +247,7 @@ export default function DashboardScreen() {
                   size={44}
                   color={darkColors.textMuted}
                 />
-                <Text style={styles.emptyText}>No expenses yet this month</Text>
+                <Text style={styles.emptyText}>No hay gastos este mes</Text>
               </View>
             )}
           </View>
@@ -411,24 +399,6 @@ const styles = StyleSheet.create({
     color: darkColors.textSecondary,
     marginTop: spacing.xs,
   },
-  pillButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    backgroundColor: darkColors.surface,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.xl,
-    paddingVertical: spacing.sm + 2,
-    marginTop: spacing.lg,
-  },
-  pillButtonText: {
-    ...typography.bodyBold,
-    color: darkColors.textPrimary,
-    fontSize: 14,
-  },
-
   // Quick actions
   quickRow: {
     flexDirection: 'row',

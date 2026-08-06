@@ -25,8 +25,10 @@ async function ensureDeviceId(): Promise<string> {
   return _deviceId;
 }
 
-/** Convert Firestore timestamp to Date */
-function timestampToDate(ts: Timestamp): Date {
+/** Convert Firestore timestamp to Date (falls back to now while a server
+ *  timestamp is still pending — the local snapshot can briefly carry null) */
+function timestampToDate(ts: Timestamp | null | undefined): Date {
+  if (!ts || typeof ts.toDate !== 'function') return new Date();
   return ts.toDate();
 }
 

@@ -92,6 +92,12 @@ export default function AddTransactionScreen() {
         description: description.trim(),
       });
 
+      // Reset the form so the next visit starts clean (the screen stays mounted)
+      setAmountText('');
+      setDescription('');
+      setDate(new Date());
+      setErrors({});
+
       // Success — go back to dashboard
       Alert.alert('Gasto registrado', '', [
         { text: 'OK', onPress: () => router.back() },

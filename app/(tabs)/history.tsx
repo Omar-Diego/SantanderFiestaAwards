@@ -433,13 +433,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingBottom: 48,
   },
-  // Empty
+  // Empty (igual que Crédito: justo debajo de la acción, sin gap)
   emptyState: {
-    flex: 1,
-    justifyContent: 'center',
     alignItems: 'center',
-    paddingHorizontal: spacing.xxl,
-    paddingBottom: spacing.huge,
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.huge,
     gap: spacing.sm,
   },
   emptyTitle: {

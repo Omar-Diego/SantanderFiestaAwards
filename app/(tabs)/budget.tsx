@@ -20,10 +20,9 @@ import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
-import { getPeriodLabel } from '../../src/utils/date';
+import { getDayLabel, getPeriodLabel } from '../../src/utils/date';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../../src/types';
 
 // ─── Currency formatter ─────────────────────────────────
@@ -35,10 +34,6 @@ const fmt = new Intl.NumberFormat('es-MX', {
 
 function formatCurrency(amount: number): string {
   return fmt.format(amount);
-}
-
-function formatDate(date: Date): string {
-  return format(date, 'd MMM', { locale: es });
 }
 
 function parseAmount(raw: string): number {
@@ -127,6 +122,32 @@ export default function BudgetScreen() {
   }, [config, spent]);
 
   const isOverBudget = remaining < 0;
+
+  // ─── Period transactions grouped by day (Actividad style) ──
+  const groupedPeriod = useMemo<
+    (
+      | { kind: 'header'; key: string; label: string }
+      | { kind: 'tx'; key: string; transaction: Transaction }
+    )[]
+  >(() => {
+    const sorted = [...periodTransactions].sort(
+      (a, b) => b.date.getTime() - a.date.getTime()
+    );
+    const items: (
+      | { kind: 'header'; key: string; label: string }
+      | { kind: 'tx'; key: string; transaction: Transaction }
+    )[] = [];
+    let lastDayKey = '';
+    for (const tx of sorted) {
+      const dayKey = format(tx.date, 'yyyy-MM-dd');
+      if (dayKey !== lastDayKey) {
+        items.push({ kind: 'header', key: `h-${dayKey}`, label: getDayLabel(tx.date) });
+        lastDayKey = dayKey;
+      }
+      items.push({ kind: 'tx', key: tx.id, transaction: tx });
+    }
+    return items;
+  }, [periodTransactions]);
 
   // ─── Loading state ──────────────────────────────────
   if (loading) {
@@ -254,7 +275,7 @@ export default function BudgetScreen() {
 
               <View style={styles.formButtons}>
                 <PrimaryButton
-                  title={submitting ? 'Guardando...' : 'GUARDAR PRESUPUESTO'}
+                  title={submitting ? 'Guardando...' : 'Guardar presupuesto'}
                   icon="check-circle-outline"
                   onPress={handleSave}
                   loading={submitting}
@@ -295,7 +316,7 @@ export default function BudgetScreen() {
         {/* ── Summary Card ────────────────────────── */}
         <View style={styles.summaryCard}>
           <Text style={styles.summaryLabel}>
-            {isOverBudget ? 'TE PASAS POR' : 'TE QUEDA'}
+            {isOverBudget ? 'TE PASAS POR' : 'DISPONIBLE'}
           </Text>
           <Text
             style={[
@@ -354,28 +375,31 @@ export default function BudgetScreen() {
           />
         </View>
 
-        {/* ── Period Transactions ─────────────────── */}
+        {/* ── Period Transactions (own card per expense) ─── */}
         {periodTransactions.length > 0 && (
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Gastos de este período</Text>
-            <View style={styles.recentList}>
-              {periodTransactions.map((tx) => (
-                <TransactionRow key={tx.id} transaction={tx} />
-              ))}
-            </View>
+            {groupedPeriod.map((item) =>
+              item.kind === 'header' ? (
+                <Text key={item.key} style={styles.dayHeader}>
+                  {item.label}
+                </Text>
+              ) : (
+                <TransactionCard key={item.key} transaction={item.transaction} />
+              )
+            )}
           </View>
         )}
 
         {periodTransactions.length === 0 && (
           <View style={styles.emptyState}>
-            <View style={styles.emptyIconWrap}>
-              <MaterialCommunityIcons
-                name="wallet-outline"
-                size={48}
-                color={darkColors.red}
-              />
-            </View>
-            <Text style={styles.emptyTitle}>Sin gastos en este período</Text>
+            <MaterialCommunityIcons
+              name="receipt-outline"
+              size={48}
+              color={darkColors.textMuted}
+            />
+            <Text style={styles.emptyTitle}>Sin gastos</Text>
+            <Text style={styles.emptySubtitle}>Aún no hay gastos registrados</Text>
           </View>
         )}
 
@@ -385,16 +409,15 @@ export default function BudgetScreen() {
   );
 }
 
-// ─── Transaction Row Component ──────────────────────────
-function TransactionRow({ transaction }: { transaction: Transaction }) {
+// ─── Transaction Card Component (own card per expense) ─
+function TransactionCard({ transaction }: { transaction: Transaction }) {
   return (
-    <View style={txStyles.row}>
-      <MerchantAvatar description={transaction.description} size={40} />
+    <View style={txStyles.card}>
+      <MerchantAvatar description={transaction.description} />
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
           {transaction.description}
         </Text>
-        <Text style={txStyles.date}>{formatDate(transaction.date)}</Text>
       </View>
       <Text style={txStyles.amount}>-{formatCurrency(transaction.amount)}</Text>
     </View>
@@ -402,13 +425,16 @@ function TransactionRow({ transaction }: { transaction: Transaction }) {
 }
 
 const txStyles = StyleSheet.create({
-  row: {
+  card: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: spacing.md,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: darkColors.divider,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    padding: spacing.lg,
     gap: spacing.md,
+    marginBottom: spacing.sm,
   },
   info: {
     flex: 1,
@@ -416,11 +442,7 @@ const txStyles = StyleSheet.create({
   description: {
     ...typography.body,
     color: darkColors.textPrimary,
-  },
-  date: {
-    ...typography.small,
-    color: darkColors.textMuted,
-    marginTop: 2,
+    fontWeight: '600',
   },
   amount: {
     ...typography.bodyBold,
@@ -546,12 +568,13 @@ const styles = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: spacing.md,
   },
-  recentList: {
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    paddingHorizontal: spacing.lg,
+  dayHeader: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+    marginTop: spacing.md,
+    marginBottom: spacing.sm,
   },
 
   // Empty State
@@ -559,20 +582,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.huge,
-  },
-  emptyIconWrap: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: darkColors.surfaceElevated,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: spacing.xl,
+    gap: spacing.sm,
   },
   emptyTitle: {
     ...typography.h3,
     color: darkColors.textPrimary,
-    marginBottom: spacing.sm,
+  },
+  emptySubtitle: {
+    ...typography.body,
+    color: darkColors.textSecondary,
+    textAlign: 'center',
   },
 
   // Error State

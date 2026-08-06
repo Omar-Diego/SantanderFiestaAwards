@@ -14,6 +14,7 @@ import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeabl
 import { router } from 'expo-router';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
+import { getDayLabel } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
@@ -21,7 +22,6 @@ import PrimaryButton from '../../src/components/PrimaryButton';
 import { deleteTransaction } from '../../src/services/transactions';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
-import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../../src/types';
 
 // ─── Currency formatter ─────────────────────────────────
@@ -39,18 +39,6 @@ const MONTHS = [
   'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
   'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
 ];
-
-/** Friendly day header: "Hoy" / "Ayer" / "Lunes 12 de agosto" */
-function dayLabel(date: Date): string {
-  const now = new Date();
-  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const startDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-  const diffDays = Math.round((startToday.getTime() - startDay.getTime()) / 86400000);
-  if (diffDays === 0) return 'Hoy';
-  if (diffDays === 1) return 'Ayer';
-  const label = format(date, 'EEEE d MMMM', { locale: es });
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
 
 // Flat list items: date headers + transaction cards
 type ListItem =
@@ -108,7 +96,7 @@ export default function HistoryScreen() {
     for (const tx of sorted) {
       const dayKey = format(tx.date, 'yyyy-MM-dd');
       if (dayKey !== lastDayKey) {
-        items.push({ kind: 'header', key: `h-${dayKey}`, label: dayLabel(tx.date) });
+        items.push({ kind: 'header', key: `h-${dayKey}`, label: getDayLabel(tx.date) });
         lastDayKey = dayKey;
       }
       items.push({ kind: 'tx', key: tx.id, transaction: tx });
@@ -262,7 +250,7 @@ export default function HistoryScreen() {
           />
           <Text style={styles.emptyTitle}>Sin gastos</Text>
           <Text style={styles.emptySubtitle}>
-            No hay gastos registrados este mes
+            Aún no hay gastos registrados
           </Text>
         </View>
       )}

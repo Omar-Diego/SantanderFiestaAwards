@@ -54,3 +54,15 @@ export function getPeriodLabel(range: PeriodRange): string {
   const endLabel = format(inclusiveEnd, 'd MMM', { locale: es });
   return `${startLabel} – ${endLabel}`;
 }
+
+/** Friendly day header (shared by Actividad and Crédito): "Hoy" / "Ayer" / "Lunes 12 de agosto" */
+export function getDayLabel(date: Date): string {
+  const now = new Date();
+  const startToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const startDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const diffDays = Math.round((startToday.getTime() - startDay.getTime()) / 86400000);
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  const label = format(date, 'EEEE d MMMM', { locale: es });
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}

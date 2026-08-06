@@ -13,6 +13,7 @@ import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
+import MerchantAvatar from '../../src/components/MerchantAvatar';
 import { deleteTransaction } from '../../src/services/transactions';
 import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
@@ -264,20 +265,14 @@ function SwipeableRow({
       rightThreshold={40}
     >
       <View style={txStyles.row}>
-        <View style={txStyles.iconWrap}>
-          <MaterialCommunityIcons
-            name="receipt-outline"
-            size={20}
-            color={darkColors.textSecondary}
-          />
-        </View>
+        <MerchantAvatar description={transaction.description} />
         <View style={txStyles.info}>
           <Text style={txStyles.description} numberOfLines={1}>
             {transaction.description}
           </Text>
           <Text style={txStyles.date}>{dateFormatted}</Text>
         </View>
-        <Text style={txStyles.amount}>{formatCurrency(transaction.amount)}</Text>
+        <Text style={txStyles.amount}>-{formatCurrency(transaction.amount)}</Text>
       </View>
     </ReanimatedSwipeable>
   );
@@ -316,14 +311,6 @@ const txStyles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     backgroundColor: darkColors.background,
     gap: spacing.md,
-  },
-  iconWrap: {
-    width: 42,
-    height: 42,
-    borderRadius: borderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: darkColors.surfaceElevated,
   },
   info: {
     flex: 1,
@@ -373,6 +360,8 @@ const styles = StyleSheet.create({
     marginHorizontal: spacing.xl,
     backgroundColor: darkColors.surface,
     borderRadius: borderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
     marginBottom: spacing.md,
     ...shadows.sm,
   },

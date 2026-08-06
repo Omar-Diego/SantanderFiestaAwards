@@ -16,6 +16,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
+import MerchantAvatar from '../../src/components/MerchantAvatar';
 import { getPeriodLabel } from '../../src/utils/date';
 import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
 import { format } from 'date-fns';
@@ -361,13 +362,7 @@ export default function BudgetScreen() {
 function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <View style={txStyles.row}>
-      <View style={txStyles.iconWrap}>
-        <MaterialCommunityIcons
-          name="receipt-outline"
-          size={20}
-          color={darkColors.textSecondary}
-        />
-      </View>
+      <MerchantAvatar description={transaction.description} size={40} />
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
           {transaction.description}
@@ -387,14 +382,6 @@ const txStyles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: darkColors.divider,
     gap: spacing.md,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: darkColors.surfaceElevated,
   },
   info: {
     flex: 1,
@@ -473,6 +460,8 @@ const styles = StyleSheet.create({
     backgroundColor: darkColors.surface,
     marginHorizontal: spacing.xl,
     borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
     padding: spacing.xl,
     alignItems: 'center',
     ...shadows.md,
@@ -550,6 +539,8 @@ const styles = StyleSheet.create({
   recentList: {
     backgroundColor: darkColors.surface,
     borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
     paddingHorizontal: spacing.lg,
     ...shadows.sm,
   },

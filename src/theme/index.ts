@@ -64,6 +64,7 @@ export const darkColors = {
 
   // Borders & Dividers
   divider: '#2C2C2E',
+  borderSubtle: 'rgba(255, 255, 255, 0.08)',  // Revolut-style subtle card border
   pill: '#3A3A3C',             // Pill backgrounds (e.g. "MXN")
 
   // Shadows

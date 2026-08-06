@@ -346,7 +346,7 @@ const styles = StyleSheet.create({
   avatar: {
     width: 64,
     height: 64,
-    borderRadius: 18,
+    borderRadius: 32,
     backgroundColor: darkColors.red,
     justifyContent: 'center',
     alignItems: 'center',
@@ -378,6 +378,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: darkColors.surface,
     borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
     padding: spacing.xl,
     ...shadows.md,
     gap: spacing.lg,

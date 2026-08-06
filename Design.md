@@ -113,6 +113,27 @@ Estructura vertical de la pantalla principal:
 
 ---
 
+## 🧩 4.7 Sistema unificado de pestañas (todas las pantallas)
+
+Todas las pestañas comparten la identidad del Home:
+
+- **Componentes compartidos** en `src/components/`:
+  - `AmbientGlow` — glow ambiental (SVG con IDs únicos por instancia); Home lo usa a intensidad 1.0, las demás a 0.7–0.8 para que el Home siga siendo el hero
+  - `TabHeader` — círculo blanco con logo Santander + título + subtítulo opcional (usado en Crédito, Actividad, Alertas y Nuevo gasto)
+  - `PrimaryButton` — botón de acción primaria rojo (variant `solid` | `outline`, prop `compact`), con icono opcional
+- **Una acción esencial por pantalla** (protagonismo en rojo Santander):
+  | Pantalla | Acción esencial |
+  |:---------|:----------------|
+  | Inicio | Acciones rápidas circulares (Registrar, Historial, Presupuesto, Alertas) |
+  | Actividad | Botón **Registrar gasto** (red, ancho completo) bajo el resumen del mes |
+  | Crédito | Botón **Editar presupuesto** (outline) bajo la tarjeta resumen / **GUARDAR PRESUPUESTO** en el formulario |
+  | Alertas | CTA **Ir a Crédito / Ver presupuesto** (botón rojo dentro de la tarjeta de alerta) |
+  | Nuevo gasto | Botón **REGISTRAR GASTO** (red, ancho completo) |
+- **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "TE QUEDA"; Alertas: "DISPONIBLE EN EL PERÍODO")
+- Secciones del formulario (Nuevo gasto, Crédito) dentro de **cards** `#1C1C1E` con borde sutil
+
+---
+
 ## 🗺️ 5. Mapeo a las Pantallas de la App (propuesta)
 
 | Diseño nuevo | Pantalla actual | Notas |

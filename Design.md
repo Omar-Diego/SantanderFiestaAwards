@@ -12,6 +12,7 @@
 - Dark mode estilo banca Santander: fondo `#000000`, superficies `#1C1C1E`, acento rojo `#FF3B30`, verde `#2EA071`.
 - **Espaciado simétrico:** la distancia de un elemento a los bordes de su contenedor debe ser uniforme (igual en todos los lados). Preferir insets uniformes (ej. `margin: 6`) sobre medidas fijas por contenido.
 - La navbar es una **píldora flotante** con cápsula activa de gap uniforme (ver sección 4.6).
+- **Botones de acción: estilo outline unificado** — fondo transparente, borde rojo Santander, icono **sin fondo** (igual al botón "Editar presupuesto"). Ningún botón de acción lleva fondo rojo sólido.
 - El cliente aprueba iterando sobre la app real: cambios pequeños, verificables, uno a la vez.
 
 ---
@@ -120,17 +121,18 @@ Todas las pestañas comparten la identidad del Home:
 - **Componentes compartidos** en `src/components/`:
   - `AmbientGlow` — glow ambiental (SVG con IDs únicos por instancia); Home lo usa a intensidad 1.0, las demás a 0.7–0.8 para que el Home siga siendo el hero
   - `TabHeader` — círculo blanco con logo Santander + título + subtítulo opcional (usado en Crédito, Actividad, Alertas y Nuevo gasto)
-  - `PrimaryButton` — botón de acción primaria rojo (variant `solid` | `outline`, prop `compact`), con icono opcional
-- **Una acción esencial por pantalla** (protagonismo en rojo Santander):
+  - `PrimaryButton` — botón de acción **outline unificado por defecto** (fondo transparente, borde rojo, icono sin fondo; prop `compact`), con icono opcional
+- **Una acción esencial por pantalla** (protagonismo en rojo Santander, siempre estilo outline):
   | Pantalla | Acción esencial |
   |:---------|:----------------|
   | Inicio | Acciones rápidas circulares (Registrar, Historial, Presupuesto, Alertas) |
-  | Actividad | Botón **Registrar gasto** (red, ancho completo) bajo el resumen del mes |
-  | Crédito | Botón **Editar presupuesto** (outline) bajo la tarjeta resumen / **GUARDAR PRESUPUESTO** en el formulario |
-  | Alertas | CTA **Ir a Crédito / Ver presupuesto** (botón rojo dentro de la tarjeta de alerta) |
-  | Nuevo gasto | Botón **REGISTRAR GASTO** (red, ancho completo) |
+  | Actividad | Botón **Registrar gasto** (outline, ancho completo) bajo el resumen del mes |
+  | Crédito | Botón **Editar presupuesto** (outline) bajo la tarjeta resumen / **GUARDAR PRESUPUESTO** (outline) en el formulario |
+  | Alertas | CTA **Ir a Crédito / Ver presupuesto** (botón outline dentro de la tarjeta de alerta) |
+  | Nuevo gasto | Botón **REGISTRAR GASTO** (outline, ancho completo) |
 - **Resumen prominente por pantalla:** tarjeta centrada con label + monto grande (Actividad: "GASTADO EN {MES}"; Crédito: "TE QUEDA"; Alertas: "DISPONIBLE EN EL PERÍODO")
 - Secciones del formulario (Nuevo gasto, Crédito) dentro de **cards** `#1C1C1E` con borde sutil
+- **Lista de gastos en Actividad: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (mismo patrón que la lista de Crédito)
 
 ---
 

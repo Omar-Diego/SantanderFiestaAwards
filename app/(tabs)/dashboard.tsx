@@ -11,10 +11,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Svg, { Defs, RadialGradient, Stop, Circle } from 'react-native-svg';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId, getGroupName } from '../../src/utils/storage';
-import { darkColors, typography, spacing, borderRadius, shadows } from '../../src/theme';
+import { getPeriodLabel } from '../../src/utils/date';
+import MerchantAvatar from '../../src/components/MerchantAvatar';
+import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import type { Transaction } from '../../src/types';
@@ -34,14 +37,21 @@ function formatDate(date: Date): string {
   return format(date, 'd MMM', { locale: es });
 }
 
-/** Payment due date: cutoff day of the current month, e.g. "05/07" */
+/** Payment due date: cutoff day of the current month, e.g. "01/09" */
 function formatPaymentDue(cutoffDay: number): string {
   const now = new Date();
-  // Clamp to the last day of the month (e.g. day 31 in February)
   const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
   const day = Math.min(cutoffDay, lastDay);
   return format(new Date(now.getFullYear(), now.getMonth(), day), 'dd/MM');
 }
+
+// ─── Quick actions (Revolut-style circular shortcuts) ───
+const QUICK_ACTIONS = [
+  { label: 'Registrar', icon: 'plus', route: '/add' },
+  { label: 'Historial', icon: 'format-list-bulleted', route: '/history' },
+  { label: 'Presupuesto', icon: 'finance', route: '/budget' },
+  { label: 'Alertas', icon: 'bell-outline', route: '/alerts' },
+] as const;
 
 // ─── Main Dashboard (Home) ──────────────────────────────
 export default function DashboardScreen() {
@@ -72,6 +82,7 @@ export default function DashboardScreen() {
   const {
     config: budgetConfig,
     loading: budgetLoading,
+    period,
     remaining: budgetRemaining,
   } = useBudget(groupId, transactions);
 
@@ -99,6 +110,8 @@ export default function DashboardScreen() {
     () => getRecentTransactions(5),
     [getRecentTransactions]
   );
+
+  const initial = (groupName || 'S').trim().charAt(0).toUpperCase();
 
   // ─── Loading state ──────────────────────────────────
   if (loading) {
@@ -128,13 +141,12 @@ export default function DashboardScreen() {
     );
   }
 
-  // ─── Derived values ────────────────────────────────
-  const limit = budgetConfig?.amount ?? null;
-  const limitPercent =
-    limit && limit > 0 ? Math.min(100, (monthTotal / limit) * 100) : 0;
   const isOverBudget = budgetConfig !== null && budgetRemaining < 0;
-  const available = budgetConfig !== null ? budgetRemaining : null;
-  const paymentDue = budgetConfig ? formatPaymentDue(budgetConfig.cutoffDay) : null;
+  const availableColor = !budgetConfig
+    ? darkColors.textMuted
+    : isOverBudget
+      ? darkColors.red
+      : darkColors.green;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -151,89 +163,160 @@ export default function DashboardScreen() {
           />
         }
       >
-        {/* ── Account Top Bar ───────────────────────── */}
-        <View style={styles.topBar}>
+        {/* ── Ambient glow (Revolut-style fluid background) ── */}
+        <View pointerEvents="none" style={styles.glow}>
+          <Svg height="100%" width="100%">
+            <Defs>
+              <RadialGradient id="glowRed" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor={darkColors.red} stopOpacity={0.16} />
+                <Stop offset="100%" stopColor={darkColors.red} stopOpacity={0} />
+              </RadialGradient>
+              <RadialGradient id="glowPurple" cx="50%" cy="50%" r="50%">
+                <Stop offset="0%" stopColor="#7B3FE4" stopOpacity={0.12} />
+                <Stop offset="100%" stopColor="#7B3FE4" stopOpacity={0} />
+              </RadialGradient>
+            </Defs>
+            <Circle cx="85%" cy="12%" r="150" fill="url(#glowRed)" />
+            <Circle cx="8%" cy="60%" r="190" fill="url(#glowPurple)" />
+          </Svg>
+        </View>
+
+        {/* ── Header ────────────────────────────────── */}
+        <View style={styles.header}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>S</Text>
+            <Text style={styles.avatarText}>{initial}</Text>
           </View>
-          <View style={styles.accountInfo}>
-            <Text style={styles.accountTitle} numberOfLines={1}>
-              {groupName || 'Santander Fiesta'}
-            </Text>
-            <Text style={styles.accountSubtitle}>Tarjeta Fiesta Awards</Text>
-          </View>
-          <View style={styles.currencyPill}>
-            <Text style={styles.currencyPillText}>MXN</Text>
-          </View>
-        </View>
-
-        {/* ── Balance Block (Spent this month) ──────── */}
-        <View style={styles.balanceBlock}>
-          <Text style={styles.balanceLabel}>SPENT THIS MONTH</Text>
-          <Text style={styles.balanceAmount}>{formatCurrency(monthTotal)}</Text>
-          {limit !== null ? (
-            <Text style={styles.balanceLimit}>
-              {Math.round(limitPercent)}% of {formatCurrency(limit)} limit
-            </Text>
-          ) : (
-            <Text style={styles.balanceLimit}>Define tu límite en Credit</Text>
-          )}
-        </View>
-
-        {/* ── Quick Info Widgets ────────────────────── */}
-        <View style={styles.widgetsRow}>
-          <View style={styles.widget}>
-            <Text style={styles.widgetLabel}>Available</Text>
-            <Text
-              style={[
-                styles.widgetValue,
-                { color: isOverBudget ? darkColors.red : darkColors.green },
-              ]}
-              numberOfLines={1}
-              adjustsFontSizeToFit
-            >
-              {available !== null ? formatCurrency(available) : '—'}
-            </Text>
-          </View>
-          <View style={styles.widget}>
-            <Text style={styles.widgetLabel}>Payment due</Text>
-            <Text style={styles.widgetValue}>{paymentDue ?? '—'}</Text>
-          </View>
-        </View>
-
-        {/* ── Divider ───────────────────────────────── */}
-        <View style={styles.divider} />
-
-        {/* ── Recent Activity ───────────────────────── */}
-        <View style={styles.activityHeader}>
-          <Text style={styles.activityTitle}>Recent activity</Text>
-          {recentTransactions.length > 0 && (
-            <TouchableOpacity
-              onPress={() => router.push('/history')}
-              hitSlop={8}
-              activeOpacity={0.7}
-            >
-              <Text style={styles.seeAll}>See all</Text>
-            </TouchableOpacity>
-          )}
-        </View>
-
-        {recentTransactions.length > 0 ? (
-          <View style={styles.activityList}>
-            {recentTransactions.map((tx) => (
-              <TransactionRow key={tx.id} transaction={tx} />
-            ))}
-          </View>
-        ) : (
-          <View style={styles.emptyState}>
+          <TouchableOpacity
+            style={styles.searchPill}
+            onPress={() => router.push('/history')}
+            activeOpacity={0.7}
+            accessibilityLabel="Buscar en el historial"
+          >
             <MaterialCommunityIcons
-              name="receipt-outline"
-              size={48}
-              color={darkColors.textMuted}
+              name="magnify"
+              size={18}
+              color={darkColors.textSecondary}
             />
-            <Text style={styles.emptyText}>No expenses yet this month</Text>
+            <Text style={styles.searchPlaceholder}>Buscar</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => router.push('/budget')}
+            activeOpacity={0.7}
+            accessibilityLabel="Ir a presupuesto"
+          >
+            <MaterialCommunityIcons name="finance" size={20} color={darkColors.textPrimary} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.headerBtn}
+            onPress={() => router.push('/alerts')}
+            activeOpacity={0.7}
+            accessibilityLabel="Ver alertas"
+          >
+            <MaterialCommunityIcons name="bell-outline" size={20} color={darkColors.textPrimary} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Balance ───────────────────────────────── */}
+        <View style={styles.balanceSection}>
+          <Text style={styles.balanceEyebrow}>TARJETA FIESTA AWARDS · SALDO ACTUAL</Text>
+          <Text style={styles.balanceAmount}>{formatCurrency(monthTotal)}</Text>
+          <Text style={styles.availableText}>
+            Disponible:{' '}
+            <Text style={{ color: availableColor, fontWeight: '600' }}>
+              {budgetConfig ? formatCurrency(budgetRemaining) : 'Sin presupuesto'}
+            </Text>
+          </Text>
+          <TouchableOpacity
+            style={styles.pillButton}
+            onPress={() => router.push('/budget')}
+            activeOpacity={0.7}
+          >
+            <MaterialCommunityIcons
+              name="wallet-outline"
+              size={16}
+              color={darkColors.textPrimary}
+            />
+            <Text style={styles.pillButtonText}>Presupuesto</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Quick actions ─────────────────────────── */}
+        <View style={styles.quickRow}>
+          {QUICK_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.route}
+              style={styles.quickItem}
+              onPress={() => router.push(action.route)}
+              activeOpacity={0.7}
+              accessibilityLabel={action.label}
+            >
+              <View style={styles.quickCircle}>
+                <MaterialCommunityIcons
+                  name={action.icon as any}
+                  size={22}
+                  color={darkColors.textPrimary}
+                />
+              </View>
+              <Text style={styles.quickLabel}>{action.label}</Text>
+            </TouchableOpacity>
+          ))}
+        </View>
+
+        {/* ── Recent activity ───────────────────────── */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>ACTIVIDAD</Text>
+          <View style={styles.activityCard}>
+            {recentTransactions.length > 0 ? (
+              <>
+                {recentTransactions.map((tx) => (
+                  <TransactionRow key={tx.id} transaction={tx} />
+                ))}
+                <TouchableOpacity
+                  style={styles.seeAll}
+                  onPress={() => router.push('/history')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.seeAllText}>Ver todo</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <View style={styles.emptyState}>
+                <MaterialCommunityIcons
+                  name="receipt-outline"
+                  size={44}
+                  color={darkColors.textMuted}
+                />
+                <Text style={styles.emptyText}>No expenses yet this month</Text>
+              </View>
+            )}
           </View>
-        )}
+        </View>
+
+        {/* ── Period (Próximo) ──────────────────────── */}
+        <View style={styles.section}>
+          <TouchableOpacity
+            style={styles.periodCard}
+            onPress={() => router.push('/budget')}
+            activeOpacity={0.7}
+          >
+            <View style={styles.periodLeft}>
+              <Text style={styles.sectionTitle}>PERÍODO</Text>
+              <Text style={styles.periodLabel}>{getPeriodLabel(period)}</Text>
+            </View>
+            {budgetConfig ? (
+              <View style={styles.duePill}>
+                <Text style={styles.duePillText}>
+                  Corte el {formatPaymentDue(budgetConfig.cutoffDay)}
+                </Text>
+              </View>
+            ) : (
+              <View style={styles.duePill}>
+                <Text style={styles.duePillText}>Define presupuesto</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+        </View>
 
         {/* Bottom spacing for floating nav */}
         <View style={{ height: 40 }} />
@@ -242,24 +325,18 @@ export default function DashboardScreen() {
   );
 }
 
-// ─── Transaction Row Component ──────────────────────────
+// ─── Transaction Row (Revolut-style colored initials) ───
 function TransactionRow({ transaction }: { transaction: Transaction }) {
   return (
     <View style={txStyles.row}>
-      <View style={txStyles.iconWrap}>
-        <MaterialCommunityIcons
-          name="receipt-outline"
-          size={20}
-          color={darkColors.textSecondary}
-        />
-      </View>
+      <MerchantAvatar description={transaction.description} />
       <View style={txStyles.info}>
         <Text style={txStyles.description} numberOfLines={1}>
           {transaction.description}
         </Text>
         <Text style={txStyles.date}>{formatDate(transaction.date)}</Text>
       </View>
-      <Text style={txStyles.amount}>{formatCurrency(transaction.amount)}</Text>
+      <Text style={txStyles.amount}>-{formatCurrency(transaction.amount)}</Text>
     </View>
   );
 }
@@ -273,20 +350,13 @@ const txStyles = StyleSheet.create({
     borderBottomColor: darkColors.divider,
     gap: spacing.md,
   },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: borderRadius.sm,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: darkColors.surfaceElevated,
-  },
   info: {
     flex: 1,
   },
   description: {
     ...typography.body,
     color: darkColors.textPrimary,
+    fontWeight: '600',
   },
   date: {
     ...typography.small,
@@ -318,147 +388,202 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
 
-  // Account top bar
-  topBar: {
+  // Ambient glow
+  glow: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 320,
+  },
+
+  // Header
+  header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    gap: spacing.md,
+    gap: spacing.sm,
   },
   avatar: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: darkColors.red,
     justifyContent: 'center',
     alignItems: 'center',
-    ...shadows.sm,
   },
   avatarText: {
-    fontSize: 22,
-    fontWeight: '700',
     color: '#FFFFFF',
+    fontSize: 18,
+    fontWeight: '700',
   },
-  accountInfo: {
+  searchPill: {
     flex: 1,
+    height: 44,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: darkColors.surface,
+    borderRadius: 22,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
   },
-  accountTitle: {
-    ...typography.bodyBold,
-    color: darkColors.textPrimary,
-    fontSize: 17,
-  },
-  accountSubtitle: {
-    ...typography.small,
+  searchPlaceholder: {
+    ...typography.body,
     color: darkColors.textSecondary,
-    marginTop: 2,
   },
-  currencyPill: {
-    backgroundColor: darkColors.pill,
-    borderRadius: borderRadius.full,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.xs + 2,
-  },
-  currencyPillText: {
-    ...typography.small,
-    color: darkColors.textPrimary,
-    fontWeight: '600',
+  headerBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: darkColors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  // Balance block
-  balanceBlock: {
+  // Balance
+  balanceSection: {
     alignItems: 'center',
-    paddingTop: spacing.xxl,
-    paddingBottom: spacing.lg,
+    paddingTop: spacing.xxxl,
+    paddingHorizontal: spacing.xl,
   },
-  balanceLabel: {
+  balanceEyebrow: {
     ...typography.label,
     color: darkColors.textSecondary,
-    letterSpacing: 1.2,
+    letterSpacing: 1,
+    textAlign: 'center',
   },
   balanceAmount: {
-    fontSize: 44,
+    fontSize: 46,
     fontWeight: '700',
     color: darkColors.textPrimary,
     letterSpacing: -0.5,
     marginTop: spacing.sm,
   },
-  balanceLimit: {
-    ...typography.small,
+  availableText: {
+    ...typography.body,
     color: darkColors.textSecondary,
     marginTop: spacing.xs,
   },
-
-  // Widgets
-  widgetsRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    paddingHorizontal: spacing.xl,
-  },
-  widget: {
-    flex: 1,
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    padding: spacing.lg,
-    ...shadows.sm,
-  },
-  widgetLabel: {
-    ...typography.small,
-    color: darkColors.textSecondary,
-  },
-  widgetValue: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: darkColors.textPrimary,
-    marginTop: spacing.xs,
-    letterSpacing: -0.3,
-  },
-
-  // Divider
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: darkColors.divider,
-    marginHorizontal: spacing.xl,
-    marginTop: spacing.xl,
-  },
-
-  // Recent activity
-  activityHeader: {
+  pillButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: spacing.sm,
+    backgroundColor: darkColors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.xl,
+    paddingVertical: spacing.sm + 2,
+    marginTop: spacing.lg,
+  },
+  pillButtonText: {
+    ...typography.bodyBold,
+    color: darkColors.textPrimary,
+    fontSize: 14,
+  },
+
+  // Quick actions
+  quickRow: {
+    flexDirection: 'row',
     paddingHorizontal: spacing.xl,
     marginTop: spacing.xl,
+    justifyContent: 'space-between',
+  },
+  quickItem: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    flex: 1,
+  },
+  quickCircle: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: darkColors.surface,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  quickLabel: {
+    ...typography.small,
+    color: darkColors.textSecondary,
+  },
+
+  // Sections
+  section: {
+    paddingHorizontal: spacing.xl,
+    marginTop: spacing.xxl,
+  },
+  sectionTitle: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1.2,
     marginBottom: spacing.md,
   },
-  activityTitle: {
-    ...typography.h3,
-    color: darkColors.textPrimary,
-    fontWeight: '700',
+  activityCard: {
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
   },
   seeAll: {
+    alignItems: 'center',
+    paddingVertical: spacing.md,
+  },
+  seeAllText: {
     ...typography.bodyBold,
     color: darkColors.red,
     fontSize: 14,
-  },
-  activityList: {
-    backgroundColor: darkColors.surface,
-    marginHorizontal: spacing.xl,
-    borderRadius: borderRadius.lg,
-    paddingHorizontal: spacing.lg,
-    ...shadows.sm,
   },
 
   // Empty state
   emptyState: {
     alignItems: 'center',
-    paddingTop: spacing.huge,
-    gap: spacing.md,
+    paddingVertical: spacing.xxxl,
+    gap: spacing.sm,
   },
   emptyText: {
     ...typography.body,
     color: darkColors.textSecondary,
     textAlign: 'center',
+  },
+
+  // Period card
+  periodCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.lg,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    padding: spacing.lg,
+  },
+  periodLeft: {
+    flex: 1,
+  },
+  periodLabel: {
+    ...typography.bodyBold,
+    color: darkColors.textPrimary,
+    marginTop: spacing.xs,
+  },
+  duePill: {
+    backgroundColor: darkColors.pill,
+    borderRadius: borderRadius.full,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.xs + 2,
+  },
+  duePillText: {
+    ...typography.small,
+    color: darkColors.textPrimary,
+    fontWeight: '600',
   },
 
   // Error state

@@ -38,6 +38,9 @@ A **React Native (Expo)** Android app for tracking all expenses made with your S
 
 ## 🎨 Design System — White & Gold
 
+> ⚠️ **Actualizado (v2):** este tema claro fue reemplazado por el **Design System v2 (modo oscuro)** documentado en [`Design.md`](./Design.md).
+> **Instrucción permanente del cliente:** para cualquier cambio visual, usar la skill de diseño `frontend-design` y respetar `Design.md`.
+
 ### Color Palette
 | Token | Hex | Usage |
 |:------|:----|:------|

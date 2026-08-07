@@ -6,8 +6,8 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
+  Keyboard,
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -19,6 +19,7 @@ import { getGroupId } from '../../src/utils/storage';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
+import { useToast } from '../../src/components/ToastProvider';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
@@ -44,6 +45,7 @@ export default function AddTransactionScreen() {
   // Validation errors
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const { showToast } = useToast();
   const descRef = useRef<TextInput>(null);
 
   // Load groupId
@@ -80,7 +82,7 @@ export default function AddTransactionScreen() {
   async function handleSubmit() {
     if (!validate()) return;
     if (!groupId) {
-      Alert.alert('Error', 'No hay un grupo configurado.');
+      showToast('error', 'No hay un grupo configurado.');
       return;
     }
 
@@ -98,12 +100,14 @@ export default function AddTransactionScreen() {
       setDate(new Date());
       setErrors({});
 
-      // Success — go back to dashboard
-      Alert.alert('Gasto registrado', '', [
-        { text: 'OK', onPress: () => router.back() },
-      ]);
-    } catch (err) {
-      Alert.alert('Error', 'No se pudo registrar el gasto. Verifica tu conexión.');
+      // Success — dismiss the keyboard so the toast isn't covered, show it
+      // (it's global, so it keeps fading over the dashboard) and go back
+      Keyboard.dismiss();
+      showToast('success', 'Gasto registrado');
+      router.back();
+    } catch {
+      Keyboard.dismiss();
+      showToast('error', 'No se pudo registrar el gasto. Verifica tu conexión.');
     } finally {
       setSubmitting(false);
     }

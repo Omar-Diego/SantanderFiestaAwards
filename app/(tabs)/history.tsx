@@ -5,7 +5,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
@@ -18,6 +17,7 @@ import { groupTransactionsByDay, type DayGroupItem } from '../../src/utils/date'
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
+import { useToast } from '../../src/components/ToastProvider';
 import { deleteTransaction } from '../../src/services/transactions';
 import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
 import type { Transaction } from '../../src/types';
@@ -43,6 +43,7 @@ export default function HistoryScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
+  const { showToast, confirm } = useToast();
 
   // Filters
   const now = new Date();
@@ -103,31 +104,27 @@ export default function HistoryScreen() {
 
   // ─── Delete handler ─────────────────────────────────
   const confirmDelete = useCallback(
-    (transactionId: string) => {
-      Alert.alert(
-        'Eliminar gasto',
-        '¿Estás seguro de eliminar este gasto?',
-        [
-          { text: 'Cancelar', style: 'cancel' },
-          {
-            text: 'Eliminar',
-            style: 'destructive',
-            onPress: async () => {
-              if (!groupId) return;
-              setDeleting(transactionId);
-              try {
-                await deleteTransaction(groupId, transactionId);
-              } catch {
-                Alert.alert('Error', 'No se pudo eliminar el gasto');
-              } finally {
-                setDeleting(null);
-              }
-            },
-          },
-        ],
-      );
+    async (transactionId: string) => {
+      const confirmed = await confirm({
+        title: 'Eliminar gasto',
+        message: '¿Estás seguro de eliminar este gasto?',
+        confirmLabel: 'Eliminar',
+        cancelLabel: 'Cancelar',
+        destructive: true,
+      });
+      if (!confirmed) return;
+      if (!groupId) return;
+
+      setDeleting(transactionId);
+      try {
+        await deleteTransaction(groupId, transactionId);
+      } catch {
+        showToast('error', 'No se pudo eliminar el gasto');
+      } finally {
+        setDeleting(null);
+      }
     },
-    [groupId]
+    [confirm, groupId, showToast]
   );
 
   // ─── Render grouped item ─────────────────────────────

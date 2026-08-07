@@ -4,6 +4,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { View, StyleSheet } from 'react-native';
 import { darkColors } from '../src/theme';
+import ToastProvider from '../src/components/ToastProvider';
 
 export default function RootLayout() {
   return (
@@ -11,7 +12,9 @@ export default function RootLayout() {
       <GestureHandlerRootView style={styles.flex}>
         <SafeAreaProvider>
           <StatusBar style="light" />
-          <Slot />
+          <ToastProvider>
+            <Slot />
+          </ToastProvider>
         </SafeAreaProvider>
       </GestureHandlerRootView>
     </View>

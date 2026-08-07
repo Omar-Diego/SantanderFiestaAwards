@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  Alert,
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
@@ -13,12 +12,14 @@ import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { darkColors, typography, spacing, borderRadius, shadows } from '../src/theme';
 import PrimaryButton from '../src/components/PrimaryButton';
+import { useToast } from '../src/components/ToastProvider';
 import { createGroup, joinGroup, isValidGroupCode } from '../src/services/group';
 import { saveGroupId, saveGroupName, getGroupId } from '../src/utils/storage';
 
 type Mode = 'choose' | 'create' | 'join';
 
 export default function SetupScreen() {
+  const { showToast } = useToast();
   const [mode, setMode] = useState<Mode>('choose');
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -51,8 +52,8 @@ export default function SetupScreen() {
       await saveGroupId(group.id);
       await saveGroupName(group.name);
       router.replace('/(tabs)/dashboard');
-    } catch (err) {
-      Alert.alert('Error', 'No se pudo crear el grupo. Verifica tu conexión.');
+    } catch {
+      showToast('error', 'No se pudo crear el grupo. Verifica tu conexión.');
     } finally {
       setSubmitting(false);
     }
@@ -78,8 +79,8 @@ export default function SetupScreen() {
       await saveGroupId(result.group.id);
       await saveGroupName(result.group.name);
       router.replace('/(tabs)/dashboard');
-    } catch (err) {
-      Alert.alert('Error', 'No se pudo conectar. Verifica tu conexión.');
+    } catch {
+      showToast('error', 'No se pudo conectar. Verifica tu conexión.');
     } finally {
       setSubmitting(false);
     }

@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from 'react-native';
@@ -19,6 +18,7 @@ import { getGroupId } from '../../src/utils/storage';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
 import PrimaryButton from '../../src/components/PrimaryButton';
+import { useToast } from '../../src/components/ToastProvider';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
 
 function parseAmount(raw: string): number {
@@ -62,6 +62,7 @@ export default function SettingsScreen() {
   const [cutoffDayText, setCutoffDayText] = useState('1');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const { showToast } = useToast();
 
   // Prefill the form once the current config arrives
   useEffect(() => {
@@ -88,10 +89,10 @@ export default function SettingsScreen() {
     setSubmitting(true);
     try {
       await saveBudget(amount, cutoffDay);
-    } catch (err) {
+    } catch {
       setSubmitting(false);
-      Alert.alert(
-        'Error',
+      showToast(
+        'error',
         'No se pudo guardar el presupuesto. Verifica tu conexión.'
       );
       return;

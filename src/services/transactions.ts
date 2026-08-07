@@ -8,13 +8,15 @@ import {
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   updateDoc,
+  writeBatch,
   type DocumentSnapshot,
   type Timestamp,
 } from '@react-native-firebase/firestore';
-import { getTransactionsRef } from './firebase';
+import { db, getEventsRef, getTransactionsRef } from './firebase';
 import { getOrCreateDeviceId } from '../utils/storage';
-import type { Transaction } from '../types';
+import type { GroupEventType, Transaction } from '../types';
 
 /** Cache the device ID in memory for speed (persisted in AsyncStorage) */
 let _deviceId: string | null = null;
@@ -54,7 +56,26 @@ interface AddTransactionData {
   description: string;
 }
 
-/** Add a new transaction */
+/** Client-generated id (no reliance on doc(col) auto-id inside a batch) */
+function newEventId(): string {
+  return `ev-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
+/** Build the event payload written alongside every expense mutation */
+async function expenseEventData(
+  type: GroupEventType,
+  data: { description: string; amount: number }
+) {
+  return {
+    type,
+    description: data.description,
+    amount: data.amount,
+    createdAt: serverTimestamp(),
+    deviceId: await ensureDeviceId(),
+  };
+}
+
+/** Add a new transaction, then a best-effort "expense added" event */
 export async function addTransaction(
   groupId: string,
   data: AddTransactionData
@@ -65,29 +86,71 @@ export async function addTransaction(
     createdAt: serverTimestamp(),
     deviceId: await ensureDeviceId(),
   });
+
+  // Best-effort companion event — never fail the expense write because of it
+  try {
+    await setDoc(
+      doc(getEventsRef(groupId), newEventId()),
+      await expenseEventData('expense_added', data)
+    );
+  } catch {
+    // ignore: the expense itself was already saved
+  }
   return docRef.id;
 }
 
-/** Update an existing transaction */
+/** Update an existing transaction + an "expense updated" event (atomic) */
 export async function updateTransaction(
   groupId: string,
   transactionId: string,
   data: Partial<AddTransactionData>
 ): Promise<void> {
   const ref = doc(getTransactionsRef(groupId), transactionId);
-  await updateDoc(ref, {
+
+  const batch = writeBatch(db);
+  batch.update(ref, {
     ...data,
     updatedAt: serverTimestamp(),
   });
+  if (data.description != null && data.amount != null) {
+    batch.set(
+      doc(getEventsRef(groupId), newEventId()),
+      await expenseEventData('expense_updated', {
+        description: data.description,
+        amount: data.amount,
+      })
+    );
+  }
+  await batch.commit();
 }
 
-/** Delete a transaction */
+/** Delete a transaction + an "expense deleted" event (atomic) */
 export async function deleteTransaction(
   groupId: string,
-  transactionId: string
+  transactionId: string,
+  meta?: { description: string; amount: number }
 ): Promise<void> {
   const ref = doc(getTransactionsRef(groupId), transactionId);
-  await deleteDoc(ref);
+
+  // If the caller didn't pass the expense details, fetch them for the event
+  let eventData;
+  if (meta) {
+    eventData = meta;
+  } else {
+    const snap = await getDoc(ref);
+    const d = snap.data();
+    eventData = d ? { description: d.description ?? '', amount: d.amount ?? 0 } : null;
+  }
+
+  const batch = writeBatch(db);
+  batch.delete(ref);
+  if (eventData) {
+    batch.set(
+      doc(getEventsRef(groupId), newEventId()),
+      await expenseEventData('expense_deleted', eventData)
+    );
+  }
+  await batch.commit();
 }
 
 /** Get a single transaction by ID */

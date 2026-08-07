@@ -23,6 +23,11 @@ export function getTransactionsRef(groupId: string) {
   return collection(doc(collection(db, COLLECTIONS.groups), groupId), 'transactions');
 }
 
+/** Helper to get a group's activity events subcollection reference */
+export function getEventsRef(groupId: string) {
+  return collection(doc(collection(db, COLLECTIONS.groups), groupId), 'events');
+}
+
 /** Helper to get a group document reference */
 export function getGroupRef(groupId: string) {
   return doc(collection(db, COLLECTIONS.groups), groupId);

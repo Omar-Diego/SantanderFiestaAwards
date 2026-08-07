@@ -113,7 +113,7 @@ export default function HistoryScreen() {
 
   // ─── Delete handler ─────────────────────────────────
   const confirmDelete = useCallback(
-    async (transactionId: string) => {
+    async (transaction: Transaction) => {
       const confirmed = await confirm({
         title: 'Eliminar gasto',
         message: '¿Estás seguro de eliminar este gasto?',
@@ -124,9 +124,12 @@ export default function HistoryScreen() {
       if (!confirmed) return;
       if (!groupId) return;
 
-      setDeleting(transactionId);
+      setDeleting(transaction.id);
       try {
-        await deleteTransaction(groupId, transactionId);
+        await deleteTransaction(groupId, transaction.id, {
+          description: transaction.description,
+          amount: transaction.amount,
+        });
       } catch {
         showToast('error', 'No se pudo eliminar el gasto');
       } finally {
@@ -149,7 +152,7 @@ export default function HistoryScreen() {
           <SwipeableRow
             transaction={item.transaction}
             onEdit={() => router.push(`/add?edit=${item.transaction.id}`)}
-            onDelete={() => confirmDelete(item.transaction.id)}
+            onDelete={() => confirmDelete(item.transaction)}
             isDeleting={deleting === item.transaction.id}
           />
         </View>

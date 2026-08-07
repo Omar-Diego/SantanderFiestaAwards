@@ -3,6 +3,7 @@ import {
   View,
   Text,
   StyleSheet,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   Share,
@@ -10,19 +11,82 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { formatDistanceToNow } from 'date-fns';
+import { es } from 'date-fns/locale/es';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
-import { getGroupId, getGroupName } from '../../src/utils/storage';
+import { getGroupId, getGroupName, getOrCreateDeviceId } from '../../src/utils/storage';
 import { formatGroupCode } from '../../src/services/group';
+import { useGroupEvents } from '../../src/hooks/useGroupEvents';
 import { darkColors, typography, spacing, borderRadius } from '../../src/theme';
+import type { GroupEvent } from '../../src/types';
 
-// ─── Main Screen (Alertas) — código del grupo ───────────
-// Replaces the old alerts concept: this tab shows the group code and a
-// shareable WhatsApp link so the other phone can join in one tap.
+// ─── Currency formatter ─────────────────────────────────
+const fmt = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2,
+});
+
+function formatCurrency(amount: number): string {
+  return fmt.format(amount);
+}
+
+// ─── Event presentation ─────────────────────────────────
+const EVENT_META: Record<GroupEvent['type'], { icon: string; color: string }> = {
+  expense_added: { icon: 'plus-circle-outline', color: darkColors.green },
+  expense_deleted: { icon: 'trash-can-outline', color: darkColors.red },
+  expense_updated: { icon: 'pencil-circle-outline', color: darkColors.warning },
+  budget_reached: { icon: 'alert-circle-outline', color: darkColors.red },
+  budget_reset: { icon: 'credit-card-outline', color: darkColors.green },
+};
+
+function eventText(ev: GroupEvent): string {
+  const money = (n?: number) => (n == null ? '' : formatCurrency(n));
+  switch (ev.type) {
+    case 'expense_added':
+      return `Gasto registrado · ${ev.description ?? ''} · ${money(ev.amount)}`;
+    case 'expense_deleted':
+      return `Gasto eliminado · ${ev.description ?? ''}`;
+    case 'expense_updated':
+      return `Gasto editado · ${ev.description ?? ''} · ${money(ev.amount)}`;
+    case 'budget_reached':
+      return `Crédito alcanzado · Gastaste ${money(ev.amount)} de ${money(ev.budgetAmount)}`;
+    case 'budget_reset':
+      return `Crédito restablecido · Meta de ${money(ev.amount)}`;
+  }
+}
+
+function EventRow({ event, isMine }: { event: GroupEvent; isMine: boolean }) {
+  const meta = EVENT_META[event.type];
+  const when = formatDistanceToNow(event.createdAt, { addSuffix: true, locale: es });
+  return (
+    <View style={styles.eventRow}>
+      <View style={[styles.eventIcon, { backgroundColor: meta.color + '1F' }]}>
+        <MaterialCommunityIcons name={meta.icon as any} size={20} color={meta.color} />
+      </View>
+      <View style={styles.eventInfo}>
+        <Text style={styles.eventText} numberOfLines={2}>
+          {eventText(event)}
+        </Text>
+        <Text style={styles.eventMeta}>
+          {when} · {isMine ? 'Tú' : 'Otro celular'}
+        </Text>
+      </View>
+    </View>
+  );
+}
+
+// ─── Main Screen (Alertas) — código del grupo + feed ────
 export default function AlertsScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
   const [groupName, setGroupName] = useState<string | null>(null);
   const [storageLoaded, setStorageLoaded] = useState(false);
+  const [localDeviceId, setLocalDeviceId] = useState<string | null>(null);
+
+  // Real-time activity feed (shared between the 2 phones)
+  const { events } = useGroupEvents(groupId);
+  const latestEvents = events.slice(0, 3);
 
   useEffect(() => {
     (async () => {
@@ -30,6 +94,8 @@ export default function AlertsScreen() {
       setGroupId(gid);
       setGroupName(name);
       setStorageLoaded(true);
+      const deviceId = await getOrCreateDeviceId();
+      setLocalDeviceId(deviceId);
     })();
   }, []);
 
@@ -82,7 +148,10 @@ export default function AlertsScreen() {
         />
       </View>
 
-      <View style={styles.content}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Code card ─────────────────────────────── */}
         <View style={styles.card}>
           <View style={styles.iconWrap}>
@@ -119,7 +188,33 @@ export default function AlertsScreen() {
             <Text style={styles.whatsappText}>Compartir por WhatsApp</Text>
           </TouchableOpacity>
         </View>
-      </View>
+
+        {/* ── Activity feed (últimas 3) ──────────────── */}
+        <View style={styles.feedSection}>
+          <Text style={styles.feedTitle}>ÚLTIMAS ALERTAS</Text>
+          {latestEvents.length > 0 ? (
+            latestEvents.map((ev) => (
+              <EventRow
+                key={ev.id}
+                event={ev}
+                isMine={localDeviceId != null && ev.deviceId === localDeviceId}
+              />
+            ))
+          ) : (
+            <View style={styles.feedEmpty}>
+              <MaterialCommunityIcons
+                name="bell-outline"
+                size={28}
+                color={darkColors.textMuted}
+              />
+              <Text style={styles.feedEmptyText}>Aún no hay alertas</Text>
+              <Text style={styles.feedEmptySub}>
+                Los cambios de gastos y presupuesto aparecerán aquí.
+              </Text>
+            </View>
+          )}
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -142,7 +237,7 @@ const styles = StyleSheet.create({
   },
   content: {
     paddingHorizontal: spacing.xl,
-    marginTop: spacing.md,
+    paddingBottom: 160,
   },
   card: {
     alignItems: 'center',
@@ -186,7 +281,6 @@ const styles = StyleSheet.create({
   },
   actions: {
     marginTop: spacing.xl,
-    gap: spacing.md,
   },
   whatsappBtn: {
     flexDirection: 'row',
@@ -206,5 +300,62 @@ const styles = StyleSheet.create({
     fontSize: 16,
     letterSpacing: 0.8,
     color: darkColors.green,
+  },
+
+  // Feed
+  feedSection: {
+    marginTop: spacing.xxl,
+    gap: spacing.sm,
+  },
+  feedTitle: {
+    ...typography.label,
+    color: darkColors.textSecondary,
+    letterSpacing: 1.4,
+    marginBottom: spacing.xs,
+  },
+  eventRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+    padding: spacing.lg,
+  },
+  eventIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  eventInfo: {
+    flex: 1,
+  },
+  eventText: {
+    ...typography.body,
+    color: darkColors.textPrimary,
+    fontWeight: '600',
+    lineHeight: 20,
+  },
+  eventMeta: {
+    ...typography.small,
+    color: darkColors.textMuted,
+    marginTop: 2,
+  },
+  feedEmpty: {
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingVertical: spacing.xl,
+  },
+  feedEmptyText: {
+    ...typography.bodyBold,
+    color: darkColors.textSecondary,
+  },
+  feedEmptySub: {
+    ...typography.small,
+    color: darkColors.textMuted,
+    textAlign: 'center',
   },
 });

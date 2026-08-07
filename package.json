@@ -2,6 +2,7 @@
   "name": "santanderfiestaawards",
   "version": "1.0.0",
   "main": "expo-router/entry",
+  "packageManager": "pnpm@10.33.2",
   "dependencies": {
     "@dicebear/core": "10.4.0",
     "@expo/vector-icons": "^15.1.1",

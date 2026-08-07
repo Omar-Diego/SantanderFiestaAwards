@@ -11,10 +11,14 @@ import {
   Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Timestamp } from '@react-native-firebase/firestore';
-import { addTransaction } from '../../src/services/transactions';
+import {
+  addTransaction,
+  getTransaction,
+  updateTransaction,
+} from '../../src/services/transactions';
 import { getGroupId } from '../../src/utils/storage';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
@@ -33,6 +37,10 @@ function parseAmount(raw: string): number {
 
 // ─── Main Screen ────────────────────────────────────────
 export default function AddTransactionScreen() {
+  const { edit } = useLocalSearchParams<{ edit?: string }>();
+  const editId = typeof edit === 'string' && edit ? edit : undefined;
+  const isEditing = !!editId;
+
   const [groupId, setGroupId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -48,14 +56,44 @@ export default function AddTransactionScreen() {
   const { showToast } = useToast();
   const descRef = useRef<TextInput>(null);
 
-  // Load groupId
+  // Load groupId and, when editing, the transaction to prefill
   useEffect(() => {
     (async () => {
       const gid = await getGroupId();
       setGroupId(gid);
+
+      if (editId) {
+        if (!gid) {
+          showToast('error', 'No hay un grupo configurado.');
+          router.back();
+          return;
+        }
+        try {
+          const tx = await getTransaction(gid, editId);
+          if (!tx) {
+            showToast('error', 'El gasto ya no existe');
+            router.back();
+            return;
+          }
+          setAmountText(String(tx.amount));
+          setDescription(tx.description);
+          setDate(tx.date);
+        } catch {
+          showToast('error', 'No se pudo cargar el gasto');
+          router.back();
+          return;
+        }
+      } else {
+        // Fresh form (also resets after coming back from an edit session)
+        setAmountText('');
+        setDescription('');
+        setDate(new Date());
+        setErrors({});
+      }
+
       setLoading(false);
     })();
-  }, []);
+  }, [editId, showToast]);
 
   // ─── Date navigation ────────────────────────────────
   function changeDay(delta: number) {
@@ -88,26 +126,37 @@ export default function AddTransactionScreen() {
 
     setSubmitting(true);
     try {
-      await addTransaction(groupId, {
-        date: Timestamp.fromDate(date),
-        amount: parseAmount(amountText),
-        description: description.trim(),
-      });
+      if (isEditing && editId) {
+        await updateTransaction(groupId, editId, {
+          date: Timestamp.fromDate(date),
+          amount: parseAmount(amountText),
+          description: description.trim(),
+        });
+        Keyboard.dismiss();
+        showToast('success', 'Gasto actualizado');
+        router.back();
+      } else {
+        await addTransaction(groupId, {
+          date: Timestamp.fromDate(date),
+          amount: parseAmount(amountText),
+          description: description.trim(),
+        });
 
-      // Reset the form so the next visit starts clean (the screen stays mounted)
-      setAmountText('');
-      setDescription('');
-      setDate(new Date());
-      setErrors({});
+        // Reset the form so the next visit starts clean (the screen stays mounted)
+        setAmountText('');
+        setDescription('');
+        setDate(new Date());
+        setErrors({});
 
-      // Success — dismiss the keyboard so the toast isn't covered, show it
-      // (it's global, so it keeps fading over the dashboard) and go back
-      Keyboard.dismiss();
-      showToast('success', 'Gasto registrado');
-      router.back();
+        // Success — dismiss the keyboard so the toast isn't covered, show it
+        // (it's global, so it keeps fading over the dashboard) and go back
+        Keyboard.dismiss();
+        showToast('success', 'Gasto registrado');
+        router.back();
+      }
     } catch {
       Keyboard.dismiss();
-      showToast('error', 'No se pudo registrar el gasto. Verifica tu conexión.');
+      showToast('error', 'No se pudo guardar el gasto. Verifica tu conexión.');
     } finally {
       setSubmitting(false);
     }
@@ -153,7 +202,10 @@ export default function AddTransactionScreen() {
                 color={darkColors.textPrimary}
               />
             </TouchableOpacity>
-            <TabHeader title="Nuevo gasto" logoSize={40} />
+            <TabHeader
+              title={isEditing ? 'Editar gasto' : 'Nuevo gasto'}
+              logoSize={40}
+            />
           </View>
 
           {/* ── Amount ────────────────────────────── */}
@@ -267,7 +319,15 @@ export default function AddTransactionScreen() {
           {/* ── Submit ──────────────────────────────── */}
           <View style={styles.submitSection}>
             <PrimaryButton
-              title={submitting ? 'Registrando...' : 'Registrar gasto'}
+              title={
+                submitting
+                  ? isEditing
+                    ? 'Guardando...'
+                    : 'Registrando...'
+                  : isEditing
+                    ? 'Guardar cambios'
+                    : 'Registrar gasto'
+              }
               icon="check-circle-outline"
               onPress={handleSubmit}
               loading={submitting}

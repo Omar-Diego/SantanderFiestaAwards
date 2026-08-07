@@ -2,12 +2,14 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   View,
   Text,
+  TextInput,
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
@@ -49,6 +51,7 @@ export default function HistoryScreen() {
   const now = new Date();
   const [filterYear, setFilterYear] = useState(now.getFullYear());
   const [filterMonth, setFilterMonth] = useState(now.getMonth());
+  const [searchText, setSearchText] = useState('');
 
   // Load group
   useEffect(() => {
@@ -64,21 +67,27 @@ export default function HistoryScreen() {
 
   const loading = !storageLoaded || txLoading;
 
-  // ─── Filtered & sorted data ─────────────────────────
-  const filteredTransactions = useMemo(() => {
+  // ─── Month-only filter (drives the summary card) ────
+  const monthTransactions = useMemo(() => {
     return transactions.filter((t) => {
       const d = t.date;
-      if (d.getFullYear() !== filterYear || d.getMonth() !== filterMonth) {
-        return false;
-      }
-      return true;
+      return d.getFullYear() === filterYear && d.getMonth() === filterMonth;
     });
   }, [transactions, filterYear, filterMonth]);
 
   const monthTotal = useMemo(
-    () => filteredTransactions.reduce((sum, t) => sum + t.amount, 0),
-    [filteredTransactions]
+    () => monthTransactions.reduce((sum, t) => sum + t.amount, 0),
+    [monthTransactions]
   );
+
+  // ─── List data (month + search) ─────────────────────
+  const filteredTransactions = useMemo(() => {
+    const query = searchText.trim().toLowerCase();
+    if (!query) return monthTransactions;
+    return monthTransactions.filter((t) =>
+      t.description.toLowerCase().includes(query)
+    );
+  }, [monthTransactions, searchText]);
 
   // ─── Grouped list (by day, newest first) ────────────
   const groupedItems = useMemo(
@@ -139,6 +148,7 @@ export default function HistoryScreen() {
         <View style={styles.rowWrap}>
           <SwipeableRow
             transaction={item.transaction}
+            onEdit={() => router.push(`/add?edit=${item.transaction.id}`)}
             onDelete={() => confirmDelete(item.transaction.id)}
             isDeleting={deleting === item.transaction.id}
           />
@@ -171,6 +181,38 @@ export default function HistoryScreen() {
         <TabHeader title="Actividad" />
       </View>
 
+      {/* ── Search ──────────────────────────────────── */}
+      <View style={styles.searchWrap}>
+        <MaterialCommunityIcons
+          name="magnify"
+          size={20}
+          color={darkColors.textMuted}
+        />
+        <TextInput
+          style={styles.searchInput}
+          value={searchText}
+          onChangeText={setSearchText}
+          placeholder="Buscar gasto..."
+          placeholderTextColor={darkColors.textMuted}
+          keyboardAppearance="dark"
+          autoCorrect={false}
+          returnKeyType="search"
+        />
+        {searchText.length > 0 && (
+          <TouchableOpacity
+            onPress={() => setSearchText('')}
+            hitSlop={8}
+            accessibilityLabel="Limpiar búsqueda"
+          >
+            <MaterialCommunityIcons
+              name="close-circle"
+              size={18}
+              color={darkColors.textMuted}
+            />
+          </TouchableOpacity>
+        )}
+      </View>
+
       {/* ── Month Filter ───────────────────────────── */}
       <View style={styles.monthFilter}>
         <TouchableOpacity
@@ -199,8 +241,8 @@ export default function HistoryScreen() {
         </Text>
         <Text style={styles.summaryAmount}>{formatCurrency(monthTotal)}</Text>
         <Text style={styles.summaryMeta}>
-          {filteredTransactions.length}{' '}
-          {filteredTransactions.length === 1 ? 'gasto' : 'gastos'}
+          {monthTransactions.length}{' '}
+          {monthTransactions.length === 1 ? 'gasto' : 'gastos'}
         </Text>
       </View>
 
@@ -214,6 +256,18 @@ export default function HistoryScreen() {
           showsVerticalScrollIndicator={false}
           style={styles.list}
         />
+      ) : searchText.trim().length > 0 ? (
+        <View style={styles.emptyState}>
+          <MaterialCommunityIcons
+            name="magnify-close"
+            size={48}
+            color={darkColors.textMuted}
+          />
+          <Text style={styles.emptyTitle}>Sin resultados</Text>
+          <Text style={styles.emptySubtitle}>
+            Ningún gasto coincide con tu búsqueda
+          </Text>
+        </View>
       ) : (
         <View style={styles.emptyState}>
           <MaterialCommunityIcons
@@ -234,27 +288,41 @@ export default function HistoryScreen() {
 // ─── Swipeable Row Component ───────────────────────────
 function SwipeableRow({
   transaction,
+  onEdit,
   onDelete,
   isDeleting,
 }: {
   transaction: Transaction;
+  onEdit: () => void;
   onDelete: () => void;
   isDeleting: boolean;
 }) {
   const renderRightActions = useCallback(
     (progress: SharedValue<number>) => {
-      // The delete button is fully invisible while the row is closed and only
-      // fades in as the user swipes left (progress goes 0 → 1). This guarantees
-      // the button never appears behind/under a card when idle.
+      // Actions are fully invisible while the row is closed and only fade in
+      // as the user swipes left (progress goes 0 → 1). This guarantees they
+      // never appear behind/under a card when idle.
       const actionStyle = useAnimatedStyle(() => ({
         opacity: progress.value,
       }));
 
       return (
-        <Animated.View style={[swipeStyles.action, actionStyle]}>
+        <Animated.View style={[swipeStyles.actions, actionStyle]}>
+          <TouchableOpacity
+            onPress={onEdit}
+            style={[swipeStyles.action, swipeStyles.actionEdit]}
+            activeOpacity={0.8}
+          >
+            <MaterialCommunityIcons
+              name="pencil-outline"
+              size={22}
+              color="#FFFFFF"
+            />
+            <Text style={swipeStyles.actionText}>Editar</Text>
+          </TouchableOpacity>
           <TouchableOpacity
             onPress={onDelete}
-            style={swipeStyles.actionInner}
+            style={[swipeStyles.action, swipeStyles.actionDelete]}
             activeOpacity={0.8}
           >
             {isDeleting ? (
@@ -273,7 +341,7 @@ function SwipeableRow({
         </Animated.View>
       );
     },
-    [onDelete, isDeleting]
+    [onEdit, onDelete, isDeleting]
   );
 
   return (
@@ -300,26 +368,29 @@ function SwipeableRow({
 }
 
 const swipeStyles = StyleSheet.create({
+  // Row of action buttons revealed on swipe. Overflow hidden + the same corner
+  // radius as the card guarantees no colored slivers peek behind the card.
+  actions: {
+    flexDirection: 'row',
+    alignSelf: 'stretch',
+    marginRight: spacing.sm,
+    borderRadius: borderRadius.lg,
+    overflow: 'hidden',
+  },
   action: {
-    backgroundColor: darkColors.red,
     justifyContent: 'center',
     alignItems: 'center',
     width: 84,
-    // Same corner radius as the card: when idle this button sits behind the
-    // card, and a smaller radius would peek out red slivers on the card's
-    // top/bottom edges (the visible "red line" the user reported)
-    borderRadius: borderRadius.lg,
-    marginRight: spacing.sm,
-    // The card no longer carries a bottom margin (spacing moved to the row
-    // wrapper), so the swipeable row measures exactly the card height and
-    // stretch makes this button match it 1:1
     alignSelf: 'stretch',
-  },
-  actionInner: {
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 2,
     paddingVertical: spacing.md,
+  },
+  actionEdit: {
+    backgroundColor: darkColors.green,
+  },
+  actionDelete: {
+    backgroundColor: darkColors.red,
+    marginLeft: spacing.sm,
   },
   actionText: {
     ...typography.small,
@@ -372,6 +443,27 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
     paddingBottom: spacing.md,
+  },
+
+  // Search
+  searchWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginHorizontal: spacing.xl,
+    marginBottom: spacing.md,
+    height: 48,
+    paddingHorizontal: spacing.lg,
+    backgroundColor: darkColors.surface,
+    borderRadius: borderRadius.md,
+    borderWidth: StyleSheet.hairlineWidth,
+    borderColor: darkColors.borderSubtle,
+  },
+  searchInput: {
+    flex: 1,
+    ...typography.body,
+    color: darkColors.textPrimary,
+    paddingVertical: 0,
   },
 
   // Month Filter

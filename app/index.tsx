@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import {
   View,
   Text,
+  Image,
   StyleSheet,
   ScrollView,
   TextInput,
@@ -10,7 +11,7 @@ import {
 } from 'react-native';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { darkColors, typography, spacing, borderRadius, shadows } from '../src/theme';
+import { darkColors, typography, spacing, borderRadius } from '../src/theme';
 import PrimaryButton from '../src/components/PrimaryButton';
 import { useToast } from '../src/components/ToastProvider';
 import { createGroup, joinGroup, isValidGroupCode } from '../src/services/group';
@@ -63,7 +64,7 @@ export default function SetupScreen() {
   async function handleJoinGroup() {
     const code = groupCode.toUpperCase().trim();
     if (!isValidGroupCode(code)) {
-      setCodeError('El código debe tener 4 letras + 4 números (ej: ABCD1234)');
+      setCodeError('Ese código no es válido. Revisa el mensaje de tu grupo.');
       return;
     }
 
@@ -105,16 +106,19 @@ export default function SetupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoSection}>
-          <View style={styles.avatar}>
-            <Text style={styles.avatarText}>S</Text>
-          </View>
-          <Text style={styles.title}>Santander Fiesta Awards</Text>
-          <Text style={styles.tagline}>Controla tus gastos en tiempo real, entre 2 celulares</Text>
+          <Image
+            source={require('../assets/SantanderLogo.png')}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+          <Text style={styles.title}>Santander</Text>
         </View>
 
-        <View style={styles.card}>
+        <View style={styles.actions}>
           <PrimaryButton
             title="Crear nuevo grupo"
+            icon="account-plus-outline"
+            variant="ghost"
             onPress={() => {
               setGroupCode('');
               setCodeError('');
@@ -122,17 +126,17 @@ export default function SetupScreen() {
             }}
             loading={submitting}
           />
-        </View>
 
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>o únete a uno</Text>
-          <View style={styles.dividerLine} />
-        </View>
+          <View style={styles.dividerRow}>
+            <View style={styles.dividerLine} />
+            <Text style={styles.dividerText}>o únete a uno</Text>
+            <View style={styles.dividerLine} />
+          </View>
 
-        <View style={styles.card}>
           <PrimaryButton
             title="Unirse a un grupo"
+            icon="account-group-outline"
+            variant="ghost"
             onPress={() => {
               setGroupCode('');
               setCodeError('');
@@ -153,39 +157,44 @@ export default function SetupScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <View style={styles.logoSection}>
+          <Image
+            source={require('../assets/SantanderLogo.png')}
+            style={styles.logoSmall}
+            resizeMode="contain"
+          />
           <Text style={styles.subtitle}>Nuevo grupo</Text>
         </View>
 
-        <View style={styles.card}>
-          <DarkInput
-            label="Nombre del grupo"
-            value={groupName}
-            onChangeText={setGroupName}
-            placeholder="Ej: Gastos Casa"
-            maxLength={30}
+        <DarkInput
+          label="Nombre del grupo"
+          value={groupName}
+          onChangeText={setGroupName}
+          placeholder="Ej: Gastos Casa"
+          maxLength={30}
+        />
+
+        <View style={styles.createInfo}>
+          <MaterialCommunityIcons
+            name="information-outline"
+            size={18}
+            color={darkColors.textMuted}
           />
-
-          <View style={styles.createInfo}>
-            <MaterialCommunityIcons
-              name="information-outline"
-              size={18}
-              color={darkColors.textMuted}
-            />
-            <Text style={styles.createInfoText}>
-              Se generará un código único para compartir con la otra persona.
-            </Text>
-          </View>
-
-          <PrimaryButton
-            title="Crear grupo"
-            onPress={handleCreateGroup}
-            loading={submitting}
-          />
-
-          <TouchableOpacity style={styles.backButton} onPress={() => setMode('choose')}>
-            <Text style={styles.backButtonText}>← Volver</Text>
-          </TouchableOpacity>
+          <Text style={styles.createInfoText}>
+            Se generará un código único para compartir con la otra persona.
+          </Text>
         </View>
+
+        <PrimaryButton
+          title="Crear grupo"
+          icon="check-circle-outline"
+          variant="ghost"
+          onPress={handleCreateGroup}
+          loading={submitting}
+        />
+
+        <TouchableOpacity style={styles.backButton} onPress={() => setMode('choose')}>
+          <Text style={styles.backButtonText}>← Volver</Text>
+        </TouchableOpacity>
       </ScrollView>
     );
   }
@@ -197,50 +206,56 @@ export default function SetupScreen() {
       contentContainerStyle={styles.content}
       keyboardShouldPersistTaps="handled"
     >
-      <View style={styles.logoSection}>          <Text style={styles.subtitle}>Unirse a un grupo</Text>
+      <View style={styles.logoSection}>
+        <Image
+          source={require('../assets/SantanderLogo.png')}
+          style={styles.logoSmall}
+          resizeMode="contain"
+        />
+        <Text style={styles.subtitle}>Unirse a un grupo</Text>
       </View>
 
-      <View style={styles.card}>
-        <DarkInput
-          label="Código del grupo"
-          value={groupCode}
-          onChangeText={(text) => {
-            setGroupCode(text.toUpperCase());
-            setCodeError('');
-          }}
-          placeholder="Ej: ABCD1234"
-          maxLength={8}
-          autoCapitalize="characters"
-          error={codeError}
+      <DarkInput
+        label="Código del grupo"
+        value={groupCode}
+        onChangeText={(text) => {
+          setGroupCode(text.toUpperCase().replace(/[^A-Z0-9]/g, ''));
+          setCodeError('');
+        }}
+        placeholder="Ej: K7WQ-3X9M-2B4F-6H8D"
+        maxLength={16}
+        autoCapitalize="characters"
+        error={codeError}
+      />
+
+      <View style={styles.createInfo}>
+        <MaterialCommunityIcons
+          name="information-outline"
+          size={18}
+          color={darkColors.textMuted}
         />
-
-        <View style={styles.createInfo}>
-          <MaterialCommunityIcons
-            name="information-outline"
-            size={18}
-            color={darkColors.textMuted}
-          />
-          <Text style={styles.createInfoText}>
-            Pídele a la otra persona el código de su grupo.
-          </Text>
-        </View>
-
-        <PrimaryButton
-          title="Unirse al grupo"
-          onPress={handleJoinGroup}
-          loading={submitting}
-        />
-
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => {
-            setMode('choose');
-            setCodeError('');
-          }}
-        >
-          <Text style={styles.backButtonText}>← Volver</Text>
-        </TouchableOpacity>
+        <Text style={styles.createInfoText}>
+          Pídele a la otra persona el código de su grupo.
+        </Text>
       </View>
+
+      <PrimaryButton
+        title="Unirse al grupo"
+        icon="check-circle-outline"
+        variant="ghost"
+        onPress={handleJoinGroup}
+        loading={submitting}
+      />
+
+      <TouchableOpacity
+        style={styles.backButton}
+        onPress={() => {
+          setMode('choose');
+          setCodeError('');
+        }}
+      >
+        <Text style={styles.backButtonText}>← Volver</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -303,20 +318,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: spacing.xxxl,
   },
-  avatar: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    backgroundColor: darkColors.red,
-    justifyContent: 'center',
-    alignItems: 'center',
+  logo: {
+    width: 116,
+    height: 116,
     marginBottom: spacing.lg,
-    ...shadows.md,
   },
-  avatarText: {
-    fontSize: 30,
-    fontWeight: '700',
-    color: '#FFFFFF',
+  logoSmall: {
+    width: 72,
+    height: 72,
+    marginBottom: spacing.md,
   },
   title: {
     ...typography.h2,
@@ -326,28 +336,14 @@ const styles = StyleSheet.create({
   subtitle: {
     ...typography.h2,
     color: darkColors.textPrimary,
-    marginBottom: spacing.sm,
   },
-  tagline: {
-    ...typography.body,
-    color: darkColors.textSecondary,
-    marginTop: spacing.sm,
-    textAlign: 'center',
-    lineHeight: 22,
-  },
-  card: {
-    backgroundColor: darkColors.surface,
-    borderRadius: borderRadius.lg,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: darkColors.borderSubtle,
-    padding: spacing.xl,
-    ...shadows.md,
+  // Botones sin card ni fondo — texto con icono sobre el fondo de la app
+  actions: {
     gap: spacing.lg,
   },
   dividerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginVertical: spacing.xl,
     gap: spacing.md,
   },
   dividerLine: {
@@ -385,6 +381,7 @@ const styles = StyleSheet.create({
   // Input
   inputGroup: {
     gap: spacing.sm,
+    marginBottom: spacing.lg,
   },
   inputLabel: {
     ...typography.label,

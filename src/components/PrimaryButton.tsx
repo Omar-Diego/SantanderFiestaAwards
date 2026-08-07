@@ -9,6 +9,8 @@ interface PrimaryButtonProps {
   disabled?: boolean;
   icon?: string;
   compact?: boolean;
+  /** 'outline' = red border, transparent fill (default) · 'ghost' = no border, no fill */
+  variant?: 'outline' | 'ghost';
 }
 
 /**
@@ -16,6 +18,7 @@ interface PrimaryButtonProps {
  * Unified OUTLINE style (design system): transparent background, red border
  * and icon without a fill (consistent with the "Editar presupuesto" button).
  * Icon + label, centered, full width.
+ * Variant 'ghost': text-only (no border, no fill, no shadow).
  */
 export default function PrimaryButton({
   title,
@@ -24,7 +27,9 @@ export default function PrimaryButton({
   disabled = false,
   icon,
   compact = false,
+  variant = 'outline',
 }: PrimaryButtonProps) {
+  const isGhost = variant === 'ghost';
   const isDisabled = disabled || loading;
   const fg = darkColors.red;
 
@@ -33,7 +38,7 @@ export default function PrimaryButton({
       style={[
         styles.button,
         compact ? styles.buttonCompact : styles.buttonRegular,
-        styles.outline,
+        isGhost ? styles.ghost : styles.outline,
         isDisabled && styles.disabled,
       ]}
       onPress={onPress}
@@ -85,6 +90,13 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     borderWidth: 1.5,
     borderColor: darkColors.red,
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+    borderWidth: 0,
+    shadowOpacity: 0,
+    shadowRadius: 0,
+    elevation: 0,
   },
   disabled: {
     opacity: 0.5,

@@ -14,6 +14,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useBudget } from '../../src/hooks/useBudget';
+import { useTransactions } from '../../src/hooks/useTransactions';
 import { getGroupId } from '../../src/utils/storage';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
@@ -33,6 +34,22 @@ function parseDay(raw: string): number {
   return Math.min(31, Math.max(0, n));
 }
 
+function parseSignedAmount(raw: string): number {
+  const cleaned = raw.replace(/[^0-9.-]/g, '');
+  const n = parseFloat(cleaned);
+  return Number.isNaN(n) ? 0 : n;
+}
+
+const fmt = new Intl.NumberFormat('es-MX', {
+  style: 'currency',
+  currency: 'MXN',
+  minimumFractionDigits: 2,
+});
+
+function formatCurrency(amount: number): string {
+  return fmt.format(amount);
+}
+
 const QUICK_AMOUNTS = [500, 1000, 2000, 5000];
 
 // ─── Main Screen (Crédito) — formulario directo ─────────
@@ -50,18 +67,23 @@ export default function SettingsScreen() {
     })();
   }, []);
 
-  const { config, loading: budgetLoading, error, saveBudget } = useBudget(
-    groupId,
-    []
-  );
+  const { transactions, loading: txLoading } = useTransactions(groupId);
+  const {
+    config,
+    loading: budgetLoading,
+    error,
+    carryOver,
+    saveBudget,
+  } = useBudget(groupId, transactions);
 
-  const loading = !storageLoaded || budgetLoading;
+  const loading = !storageLoaded || budgetLoading || txLoading;
 
   // ─── Form state ─────────────────────────────────────
   const [amountText, setAmountText] = useState('');
   const [cutoffDayText, setCutoffDayText] = useState('1');
   const [submitting, setSubmitting] = useState(false);
   const [formError, setFormError] = useState('');
+  const [carryOverText, setCarryOverText] = useState('');
   const { showToast } = useToast();
 
   // Prefill the form once the current config arrives
@@ -69,12 +91,17 @@ export default function SettingsScreen() {
     if (config) {
       setAmountText(String(config.amount));
       setCutoffDayText(String(config.cutoffDay));
+      setCarryOverText(
+        config.manualCarryOver !== undefined ? String(config.manualCarryOver) : ''
+      );
     }
   }, [config]);
 
   async function handleSave() {
     const amount = parseAmount(amountText);
     const cutoffDay = parseDay(cutoffDayText);
+    const manualCarryOver =
+      carryOverText.trim() === '' ? null : parseSignedAmount(carryOverText);
 
     if (amount <= 0) {
       setFormError('Ingresa un monto válido');
@@ -88,7 +115,7 @@ export default function SettingsScreen() {
     setFormError('');
     setSubmitting(true);
     try {
-      await saveBudget(amount, cutoffDay);
+      await saveBudget(amount, cutoffDay, manualCarryOver);
     } catch {
       setSubmitting(false);
       showToast(
@@ -155,6 +182,11 @@ export default function SettingsScreen() {
 
           <View style={styles.form}>
             <Text style={styles.sectionLabel}>MONTO POR PERÍODO</Text>
+            <Text style={styles.hint}>
+              Cada mes, en tu día de corte, el gasto vuelve a cero y lo no
+              gastado se acumula. Cambiar el monto no afecta el sobrante de
+              períodos anteriores.
+            </Text>
             <View style={styles.amountRow}>
               <Text style={styles.currencySymbol}>$</Text>
               <TextInput
@@ -222,6 +254,35 @@ export default function SettingsScreen() {
               keyboardAppearance="dark"
               maxLength={2}
             />
+
+            <Text style={[styles.sectionLabel, { marginTop: spacing.xl }]}>
+              SOBRANTE ACUMULADO (OPCIONAL)
+            </Text>
+            <Text style={styles.hint}>
+              Lo no gastado de períodos anteriores. Si quedó mal calculado,
+              corrígelo: vale solo para el período actual y, al terminar, se
+              le suma lo que sobre. Actual: {formatCurrency(carryOver)}.
+            </Text>
+            <View style={styles.amountRow}>
+              <Text style={styles.currencySymbol}>$</Text>
+              <TextInput
+                style={styles.amountInput}
+                value={carryOverText}
+                onChangeText={(t) => {
+                  let cleaned = t.replace(/[^0-9.-]/g, '');
+                  cleaned = cleaned.replace(/(?!^)-/g, '');
+                  const parts = cleaned.replace('-', '').split('.');
+                  if (parts.length > 2) return;
+                  if (parts[1]?.length > 2) return;
+                  setCarryOverText(cleaned);
+                  if (formError) setFormError('');
+                }}
+                placeholder="Automático"
+                placeholderTextColor={darkColors.textMuted}
+                keyboardType="numbers-and-punctuation"
+                keyboardAppearance="dark"
+              />
+            </View>
 
             {formError !== '' && <Text style={styles.errorText}>{formError}</Text>}
 

@@ -2,16 +2,6 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale/es';
 import type { Transaction } from '../types';
 
-/** Current month label, capitalized in Spanish (e.g. "Julio 2026") */
-export function getCurrentMonthLabel(): string {
-  const now = new Date();
-  const months = [
-    'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-  ];
-  return `${months[now.getMonth()]} ${now.getFullYear()}`;
-}
-
 /** A budget period, [start, end) — end is exclusive */
 export interface PeriodRange {
   start: Date;
@@ -32,7 +22,7 @@ function cutoffDateFor(year: number, month: number, cutoffDay: number): Date {
  * Current budget period based on a monthly cutoff day (1-31).
  * The period runs from the most recent cutoff (inclusive) to the next one (exclusive).
  */
-export function getCurrentPeriodRange(cutoffDay: number, now: Date = new Date()): PeriodRange {
+export function getCurrentPeriodRange(cutoffDay: number = 1, now: Date = new Date()): PeriodRange {
   const year = now.getFullYear();
   const month = now.getMonth();
   const thisCutoff = cutoffDateFor(year, month, cutoffDay);
@@ -48,23 +38,80 @@ export function getCurrentPeriodRange(cutoffDay: number, now: Date = new Date())
   return { start: cutoffDateFor(prevYear, prevMonth, cutoffDay), end: thisCutoff };
 }
 
-/** Number of weeks a period spans (whole or partial), minimum 1 */
-export function getWeeksInPeriod(range: PeriodRange): number {
-  const totalDays = Math.max(
-    1,
-    Math.round((range.end.getTime() - range.start.getTime()) / 86400000)
-  );
-  return Math.max(1, Math.ceil(totalDays / 7));
+/** First Saturday at or after a date — each weekend is one (Sat, Sun) pair */
+function firstSaturdayOnOrAfter(date: Date): Date {
+  const d = new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
+  const daysUntilSaturday = (6 - d.getDay() + 7) % 7;
+  d.setDate(d.getDate() + daysUntilSaturday);
+  return d;
 }
 
-/** 1-based index of the current week inside a period (capped at the last week) */
-export function getCurrentWeekOfPeriod(range: PeriodRange, now: Date = new Date()): number {
-  const elapsedMs = Math.max(0, now.getTime() - range.start.getTime());
-  const elapsedDays = Math.floor(elapsedMs / 86400000);
-  return Math.min(Math.floor(elapsedDays / 7) + 1, getWeeksInPeriod(range));
+/**
+ * Number of weekends (Sat+Sun pairs) that start inside the period.
+ * Depending on how the calendar falls, a ~30-day period has 4 or 5.
+ */
+export function getWeekendsInPeriod(range: PeriodRange): number {
+  const cursor = firstSaturdayOnOrAfter(range.start);
+  let count = 0;
+  while (cursor < range.end) {
+    count += 1;
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return Math.max(1, count);
 }
 
-/** Human label for a period range, e.g. "19 jul – 18 ago" */
+/**
+ * 1-based index of the weekend in progress: the MOST RECENT weekend whose
+ * Saturday has already arrived, capped at the last weekend. Once the last
+ * weekend passes, the index stays there — the trailing days before the
+ * cutoff get no new allocation. Before the first weekend it returns 1, so
+ * the first slice is available from the period start.
+ */
+export function getCurrentWeekendOfPeriod(range: PeriodRange, now: Date = new Date()): number {
+  const count = getWeekendsInPeriod(range);
+  const cursor = firstSaturdayOnOrAfter(range.start);
+  let current = 1;
+  let index = 0;
+  while (cursor < range.end) {
+    index += 1;
+    if (cursor <= now) current = Math.min(index, count);
+    cursor.setDate(cursor.getDate() + 7);
+  }
+  return current;
+}
+
+
+/**
+ * The period immediately before the one ending at `endExclusive` (exclusive end),
+ * assuming periods reset on `cutoffDay` of each month.
+ */
+export function getPreviousPeriodRange(endExclusive: Date, cutoffDay: number): PeriodRange {
+  const year = endExclusive.getFullYear();
+  const month = endExclusive.getMonth();
+  const prevMonth = month === 0 ? 11 : month - 1;
+  const prevYear = month === 0 ? year - 1 : year;
+  return {
+    start: cutoffDateFor(prevYear, prevMonth, cutoffDay),
+    end: new Date(endExclusive),
+  };
+}
+
+/**
+ * The period starting at `startInclusive` (inclusive start), assuming periods
+ * reset on `cutoffDay` of each month.
+ */
+export function getNextPeriodRange(startInclusive: Date, cutoffDay: number): PeriodRange {
+  const year = startInclusive.getFullYear();
+  const month = startInclusive.getMonth();
+  const nextMonth = month === 11 ? 0 : month + 1;
+  const nextYear = month === 11 ? year + 1 : year;
+  return {
+    start: new Date(startInclusive),
+    end: cutoffDateFor(nextYear, nextMonth, cutoffDay),
+  };
+}
+
+/** Human label for a period range, e.g. "15 jun – 14 jul" (reflects the configured cutoff day) */
 export function getPeriodLabel(range: PeriodRange): string {
   const inclusiveEnd = new Date(range.end.getTime() - 1);
   const startLabel = format(range.start, 'd MMM', { locale: es });

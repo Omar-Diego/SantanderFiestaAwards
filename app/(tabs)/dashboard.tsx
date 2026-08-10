@@ -16,7 +16,7 @@ import AmbientGlow from '../../src/components/AmbientGlow';
 import { useTransactions } from '../../src/hooks/useTransactions';
 import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
-import { groupTransactionsByDay } from '../../src/utils/date';
+import { groupTransactionsByDay, getPeriodLabel } from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import { darkColors, typography, spacing, borderRadius, sharedStyles } from '../../src/theme';
 import type { Transaction } from '../../src/types';
@@ -35,7 +35,8 @@ function formatCurrency(amount: number): string {
 // ─── Quick actions (Revolut-style circular shortcuts) ───
 const QUICK_ACTIONS = [
   { label: 'Registrar', icon: 'plus', route: '/add' },
-  { label: 'Alertas', icon: 'bell-outline', route: '/alerts' },
+  { label: 'Simular', icon: 'calculator-variant-outline', route: '/simulate' },
+  { label: 'Pagos', icon: 'cash', route: '/pagos' },
   { label: 'Crédito', icon: 'credit-card-outline', route: '/settings' },
 ] as const;
 
@@ -58,7 +59,6 @@ export default function DashboardScreen() {
     transactions,
     loading: txLoading,
     error,
-    getMonthTotal,
     getRecentTransactions,
   } = useTransactions(groupId);
 
@@ -66,11 +66,14 @@ export default function DashboardScreen() {
   const {
     config: budgetConfig,
     loading: budgetLoading,
-    remaining: budgetRemaining,
-    weeksInPeriod,
-    currentWeek,
-    weeklyAllowance,
-    weeklyAvailable,
+    period,
+    spent,
+    available: budgetAvailable,
+    carryOver,
+    weekendsInPeriod,
+    currentWeekend,
+    weekendAllowance,
+    weekendAvailable,
   } = useBudget(groupId, transactions);
 
   const loading = !storageLoaded || txLoading || budgetLoading;
@@ -82,16 +85,6 @@ export default function DashboardScreen() {
     // Brief visual feedback — real-time already keeps data fresh
     setTimeout(() => setRefreshing(false), 400);
   }, []);
-
-  // Current month
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-
-  const monthTotal = useMemo(
-    () => getMonthTotal(year, month),
-    [getMonthTotal, year, month]
-  );
 
   const recentTransactions = useMemo(
     () => getRecentTransactions(3),
@@ -132,7 +125,7 @@ export default function DashboardScreen() {
     );
   }
 
-  const isOverBudget = budgetConfig !== null && budgetRemaining < 0;
+  const isOverBudget = budgetConfig !== null && budgetAvailable < 0;
   const availableColor = !budgetConfig
     ? darkColors.textMuted
     : isOverBudget
@@ -171,13 +164,20 @@ export default function DashboardScreen() {
         {/* ── Balance ───────────────────────────────── */}
         <View style={styles.balanceSection}>
           <Text style={styles.balanceEyebrow}>SALDO TOTAL</Text>
-          <Text style={styles.balanceAmount}>{formatCurrency(monthTotal)}</Text>
+          <Text style={styles.balanceAmount}>{formatCurrency(spent)}</Text>
+          <Text style={styles.periodCaption}>{getPeriodLabel(period)}</Text>
           <Text style={styles.availableText}>
             Disponible:{' '}
             <Text style={{ color: availableColor, fontWeight: '600' }}>
-              {budgetConfig ? formatCurrency(budgetRemaining) : 'Sin presupuesto'}
+              {budgetConfig ? formatCurrency(budgetAvailable) : 'Sin presupuesto'}
             </Text>
           </Text>
+          {budgetConfig && carryOver > 0 && (
+            <Text style={styles.carryOverText}>
+              Incluye {formatCurrency(carryOver)} sobrante de períodos
+              anteriores
+            </Text>
+          )}
         </View>
 
         {/* ── Quick actions ─────────────────────────── */}
@@ -202,37 +202,44 @@ export default function DashboardScreen() {
           ))}
         </View>
 
-        {/* ── Weekly available (replaces PERÍODO) ────── */}
+        {/* ── This weekend's spending power ─────────── */}
         {/* Informational only — deliberately NOT tappable */}
         <View style={styles.section}>
           <View style={styles.periodCard}>
             <View style={styles.periodLeft}>
               <Text style={styles.sectionTitle}>
-                DISPONIBLE ESTA SEMANA
+                PUEDES GASTAR ESTE FIN DE SEMANA
               </Text>
-              {budgetConfig && weeklyAvailable !== null ? (
+              {budgetConfig && weekendAvailable !== null ? (
                 <>
                   <Text
                     style={[
-                      styles.weekAmount,
+                      styles.paceAmount,
                       {
                         color:
-                          weeklyAvailable < 0 ? darkColors.red : darkColors.green,
+                          weekendAvailable < 0
+                            ? darkColors.red
+                            : darkColors.green,
                       },
                     ]}
                   >
-                    {formatCurrency(weeklyAvailable)}
+                    {formatCurrency(weekendAvailable)}
                   </Text>
-                  <Text style={styles.weekCaption}>
-                    Semana {currentWeek} de {weeksInPeriod} ·{' '}
-                    {formatCurrency(weeklyAllowance)} por semana
+                  <Text style={styles.paceCaption}>
+                    Fin de semana {currentWeekend} de {weekendsInPeriod} ·
+                    hasta {formatCurrency(weekendAllowance)} por fin de
+                    semana
+                    {carryOver > 0
+                      ? ` · +${formatCurrency(carryOver)} sobrante`
+                      : ''}
                   </Text>
                 </>
               ) : (
                 <>
-                  <Text style={styles.weekAmountMuted}>Sin presupuesto</Text>
-                  <Text style={styles.weekCaption}>
-                    Define una meta para ver tu disponible semanal
+                  <Text style={styles.paceAmountMuted}>Sin presupuesto</Text>
+                  <Text style={styles.paceCaption}>
+                    Define una meta para ver cuánto puedes gastar este fin
+                    de semana
                   </Text>
                 </>
               )}
@@ -389,6 +396,16 @@ const styles = StyleSheet.create({
     color: darkColors.textSecondary,
     marginTop: spacing.xs,
   },
+  carryOverText: {
+    ...typography.caption,
+    color: darkColors.textMuted,
+    marginTop: spacing.xs,
+  },
+  periodCaption: {
+    ...typography.caption,
+    color: darkColors.textMuted,
+    marginTop: spacing.sm,
+  },
   // Quick actions
   quickRow: {
     flexDirection: 'row',
@@ -454,7 +471,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 
-  // Weekly available card (replaces PERÍODO)
+  // Weekend pacing card (replaces PERÍODO)
   periodCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -469,21 +486,22 @@ const styles = StyleSheet.create({
   periodLeft: {
     flex: 1,
   },
-  weekAmount: {
+  paceAmount: {
     fontSize: 32,
     fontWeight: '700',
     letterSpacing: -0.5,
     marginTop: spacing.xs,
   },
-  weekAmountMuted: {
+  paceAmountMuted: {
     ...typography.h3,
     color: darkColors.textMuted,
     marginTop: spacing.xs,
   },
-  weekCaption: {
+  paceCaption: {
     ...typography.caption,
     color: darkColors.textSecondary,
-    marginTop: spacing.xs,
+    marginTop: spacing.sm,
+    lineHeight: 20,
   },
 
   // Error state

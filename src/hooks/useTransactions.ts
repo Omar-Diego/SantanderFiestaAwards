@@ -39,19 +39,6 @@ export function useTransactions(groupId: string | null) {
     };
   }, [groupId]);
 
-  /** Get total expenses for a given month */
-  const getMonthTotal = useCallback(
-    (year: number, month: number): number => {
-      return transactions
-        .filter((t) => {
-          const d = t.date;
-          return d.getFullYear() === year && d.getMonth() === month;
-        })
-        .reduce((sum, t) => sum + t.amount, 0);
-    },
-    [transactions]
-  );
-
   /** Get the most recent transactions */
   const getRecentTransactions = useCallback(
     (count: number = 5): Transaction[] => {
@@ -64,7 +51,6 @@ export function useTransactions(groupId: string | null) {
     transactions,
     loading,
     error,
-    getMonthTotal,
     getRecentTransactions,
   };
 }

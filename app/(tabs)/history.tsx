@@ -14,8 +14,15 @@ import { FlashList } from '@shopify/flash-list';
 import ReanimatedSwipeable from 'react-native-gesture-handler/ReanimatedSwipeable';
 import Animated, { useAnimatedStyle, type SharedValue } from 'react-native-reanimated';
 import { useTransactions } from '../../src/hooks/useTransactions';
+import { useBudget } from '../../src/hooks/useBudget';
 import { getGroupId } from '../../src/utils/storage';
-import { groupTransactionsByDay, type DayGroupItem } from '../../src/utils/date';
+import {
+  groupTransactionsByDay,
+  getPeriodLabel,
+  getPreviousPeriodRange,
+  getNextPeriodRange,
+  type DayGroupItem,
+} from '../../src/utils/date';
 import MerchantAvatar from '../../src/components/MerchantAvatar';
 import AmbientGlow from '../../src/components/AmbientGlow';
 import TabHeader from '../../src/components/TabHeader';
@@ -35,11 +42,6 @@ function formatCurrency(amount: number): string {
   return fmt.format(amount);
 }
 
-const MONTHS = [
-  'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
-  'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre',
-];
-
 // ─── History Screen (Actividad) ──────────────────────────
 export default function HistoryScreen() {
   const [groupId, setGroupId] = useState<string | null>(null);
@@ -48,9 +50,7 @@ export default function HistoryScreen() {
   const { showToast, confirm } = useToast();
 
   // Filters
-  const now = new Date();
-  const [filterYear, setFilterYear] = useState(now.getFullYear());
-  const [filterMonth, setFilterMonth] = useState(now.getMonth());
+  const [periodOffset, setPeriodOffset] = useState(0); // 0 = current cutoff period
   const [searchText, setSearchText] = useState('');
 
   // Load group
@@ -65,29 +65,51 @@ export default function HistoryScreen() {
   // Real-time transactions
   const { transactions, loading: txLoading } = useTransactions(groupId);
 
-  const loading = !storageLoaded || txLoading;
+  // Budget config gives us the cutoff day that shapes each period
+  const {
+    config: budgetConfig,
+    loading: budgetLoading,
+    period,
+  } = useBudget(groupId, transactions);
+  const cutoffDay = budgetConfig?.cutoffDay ?? 1;
 
-  // ─── Month-only filter (drives the summary card) ────
-  const monthTransactions = useMemo(() => {
-    return transactions.filter((t) => {
-      const d = t.date;
-      return d.getFullYear() === filterYear && d.getMonth() === filterMonth;
-    });
-  }, [transactions, filterYear, filterMonth]);
+  const loading = !storageLoaded || txLoading || budgetLoading;
 
-  const monthTotal = useMemo(
-    () => monthTransactions.reduce((sum, t) => sum + t.amount, 0),
-    [monthTransactions]
+  // ─── Filtered period (offset 0 = current cutoff period) ──
+  // Computed on every render so it self-heals across a period boundary.
+  const filterPeriod = (() => {
+    let range = period;
+    const steps = Math.abs(periodOffset);
+    for (let i = 0; i < steps; i++) {
+      range =
+        periodOffset < 0
+          ? getPreviousPeriodRange(range.start, cutoffDay)
+          : getNextPeriodRange(range.end, cutoffDay);
+    }
+    return range;
+  })();
+
+  const periodTransactions = useMemo(
+    () =>
+      transactions.filter(
+        (t) => t.date >= filterPeriod.start && t.date < filterPeriod.end
+      ),
+    [transactions, filterPeriod]
   );
 
-  // ─── List data (month + search) ─────────────────────
+  const periodTotal = useMemo(
+    () => periodTransactions.reduce((sum, t) => sum + t.amount, 0),
+    [periodTransactions]
+  );
+
+  // ─── List data (period + search) ────────────────────
   const filteredTransactions = useMemo(() => {
     const query = searchText.trim().toLowerCase();
-    if (!query) return monthTransactions;
-    return monthTransactions.filter((t) =>
+    if (!query) return periodTransactions;
+    return periodTransactions.filter((t) =>
       t.description.toLowerCase().includes(query)
     );
-  }, [monthTransactions, searchText]);
+  }, [periodTransactions, searchText]);
 
   // ─── Grouped list (by day, newest first) ────────────
   const groupedItems = useMemo(
@@ -95,20 +117,9 @@ export default function HistoryScreen() {
     [filteredTransactions]
   );
 
-  // ─── Month navigation ───────────────────────────────
-  function changeMonth(delta: number) {
-    setFilterMonth((prev) => {
-      const newMonth = prev + delta;
-      if (newMonth < 0) {
-        setFilterYear((y) => y - 1);
-        return 11;
-      }
-      if (newMonth > 11) {
-        setFilterYear((y) => y + 1);
-        return 0;
-      }
-      return newMonth;
-    });
+  // ─── Period navigation (never into the future) ──────
+  function changePeriod(delta: number) {
+    setPeriodOffset((prev) => Math.min(0, prev + delta));
   }
 
   // ─── Delete handler ─────────────────────────────────
@@ -172,7 +183,7 @@ export default function HistoryScreen() {
     );
   }
 
-  const monthLabel = `${MONTHS[filterMonth]} ${filterYear}`;
+  const periodLabel = getPeriodLabel(filterPeriod);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -216,36 +227,44 @@ export default function HistoryScreen() {
         )}
       </View>
 
-      {/* ── Month Filter ───────────────────────────── */}
+      {/* ── Period Filter ──────────────────────────── */}
       <View style={styles.monthFilter}>
         <TouchableOpacity
           style={styles.monthArrow}
-          onPress={() => changeMonth(-1)}
+          onPress={() => changePeriod(-1)}
           activeOpacity={0.7}
         >
           <MaterialCommunityIcons name="chevron-left" size={22} color={darkColors.red} />
         </TouchableOpacity>
         <View style={styles.monthCenter}>
-          <Text style={styles.monthText}>{monthLabel}</Text>
+          <Text style={styles.monthText}>{periodLabel}</Text>
         </View>
         <TouchableOpacity
-          style={styles.monthArrow}
-          onPress={() => changeMonth(1)}
+          style={[
+            styles.monthArrow,
+            periodOffset >= 0 && styles.monthArrowDisabled,
+          ]}
+          onPress={() => changePeriod(1)}
+          disabled={periodOffset >= 0}
           activeOpacity={0.7}
         >
-          <MaterialCommunityIcons name="chevron-right" size={22} color={darkColors.red} />
+          <MaterialCommunityIcons
+            name="chevron-right"
+            size={22}
+            color={
+              periodOffset >= 0 ? darkColors.textMuted : darkColors.red
+            }
+          />
         </TouchableOpacity>
       </View>
 
-      {/* ── Month summary card ─────────────────────── */}
+      {/* ── Period summary card ────────────────────── */}
       <View style={styles.summaryCard}>
-        <Text style={styles.summaryLabel}>
-          GASTADO EN {MONTHS[filterMonth].toUpperCase()}
-        </Text>
-        <Text style={styles.summaryAmount}>{formatCurrency(monthTotal)}</Text>
+        <Text style={styles.summaryLabel}>GASTADO EN EL PERÍODO</Text>
+        <Text style={styles.summaryAmount}>{formatCurrency(periodTotal)}</Text>
         <Text style={styles.summaryMeta}>
-          {monthTransactions.length}{' '}
-          {monthTransactions.length === 1 ? 'gasto' : 'gastos'}
+          {periodTransactions.length}{' '}
+          {periodTransactions.length === 1 ? 'gasto' : 'gastos'}
         </Text>
       </View>
 
@@ -483,6 +502,9 @@ const styles = StyleSheet.create({
   monthArrow: {
     paddingHorizontal: spacing.xl,
     paddingVertical: spacing.md,
+  },
+  monthArrowDisabled: {
+    opacity: 0.4,
   },
   monthCenter: {
     flex: 1,

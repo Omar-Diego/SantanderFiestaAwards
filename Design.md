@@ -91,15 +91,15 @@ Estructura vertical de la pantalla principal:
 
 ### 4.3 Acciones Rápidas (Quick Actions)
 - Fila de **3 botones circulares** `#1C1C1E` (borde sutil), icono + label debajo:
-  **Registrar (+ → `/add`)** · **Alertas (campana → `/alerts`)** · **Crédito (tarjeta → `/settings`, abre el formulario directo)**
+  **Registrar (+ → `/add`)** · **Simular (calculadora → `/simulate`)** · **Pagos (efectivo → `/pagos`, reparto Omar/Isa)** · **Crédito (tarjeta → `/settings`, abre el formulario directo)**
 - ~~Historial, Presupuesto y Configuración~~ — **eliminados** del Home (Historial sigue solo en la nav flotante; Alertas queda en la barra y también como acceso rápido; el crédito se abre desde aquí)
 
-### 4.4 Tarjeta Disponible Semanal (reemplaza a PERÍODO)
-- **Va ANTES de Actividad** (orden del Home: Balance → Acciones rápidas → **DISPONIBLE ESTA SEMANA** → **ACTIVIDAD**)
+### 4.4 Tarjeta Disponible por Fin de Semana (reemplaza a PERÍODO)
+- **Va ANTES de Actividad** (orden del Home: Balance → Acciones rápidas → **PUEDES GASTAR ESTE FIN DE SEMANA** → **ACTIVIDAD**)
 - **Informativa — NO es botón** (no navega a ningún lado)
-- Card con **"DISPONIBLE ESTA SEMANA"** + monto grande en verde/rojo según el disponible semanal
-- **Cálculo con rollover:** el período se divide en semanas (`budget / semanas`); lo no gastado se acumula para las siguientes semanas → si gastas menos una semana, la siguiente tienes más
-- Subtítulo: "Semana {n} de {m} · {X} por semana"
+- Card con **"PUEDES GASTAR ESTE FIN DE SEMANA"** + monto grande en verde/rojo según el disponible
+- **Cálculo con rollover por fines de semana:** el período se divide entre los **fines de semana reales que caen dentro** (4 o 5, según el calendario); **solo el presupuesto fresco del período** se reparte equitativamente entre ellos (`budget / fines de semana`), así el último fin de semana agota el presupuesto y los días previos al corte quedan sin asignación. El **sobrante de períodos anteriores no se divide: se suma completo** al siguiente fin de semana y rota de ahí en adelante. Lo no gastado también se acumula para el siguiente fin de semana
+- Subtítulo: "Fin de semana {n} de {m} · {X} por fin de semana"
 - Pill a la derecha: "Define presupuesto" si aún no hay meta · sin pill si ya hay presupuesto
 
 ### 4.5 Sección Actividad (sin fondo)
@@ -133,7 +133,7 @@ Todas las pestañas comparten la identidad del Home:
 - **Una acción esencial por pantalla** (protagonismo en rojo Santander, siempre estilo outline):
   | Pantalla | Acción esencial |
   |:---------|:----------------|
-  | Inicio | Acciones rápidas circulares (Registrar, Alertas, Crédito→formulario) + tarjeta **Disponible semanal** (informativa, no tappable) |
+  | Inicio | Acciones rápidas circulares (Registrar, Simular, Pagos, Crédito→formulario) + tarjeta **Disponible por fin de semana** (informativa, no tappable) |
   | Actividad | Lista de gastos del mes (filtro de mes, sin botón registrar) |
   | Crédito (oculto) | **GUARDAR PRESUPUESTO** (outline) — la pantalla es **solo el formulario** de edición directa (sin resumen) |
   | Alertas | CTA **Ir a Crédito / Ver presupuesto** (botón outline dentro de la tarjeta de alerta) |
@@ -143,7 +143,7 @@ Todas las pestañas comparten la identidad del Home:
 - Formulario de **Nuevo gasto**: **sin card** — directo sobre el fondo de la app, igual que Crédito (solo los inputs conservan su fondo `surfaceElevated`)
 - **Lista de gastos en Actividad y Home: SIN card envolvente** — cada gasto es **su propia card** (`#1C1C1E`, borde sutil) con el avatar de comercio (`MerchantAvatar`), agrupadas por fecha con encabezados **Hoy / Ayer / "Lunes 12 de agosto"** (helper compartido `getDayLabel` en `src/utils/date.ts`)
 - **Estados vacíos unificados** (Inicio y Actividad): icono receipt gris + **"Sin gastos"** + **"Aún no hay gastos registrados"**
-- **Disponible semanal (Home):** el período se divide en semanas; el disponible de la semana acumula lo no gastado de las anteriores (rollover). Lógica en `useBudget` (`weeksInPeriod`, `currentWeek`, `weeklyAllowance`, `weeklyAvailable`)
+- **Disponible por fin de semana (Home):** el período se divide entre los fines de semana reales que caen dentro (4 o 5 según el calendario); el disponible acumula lo no gastado de los anteriores (rollover) y el sobrante de períodos previos se suma **completo** al siguiente fin de semana (no se reparte entre todos). Lógica en `useBudget` (`weekendsInPeriod`, `currentWeekend`, `weekendAllowance`, `weekendAvailable`)
 - **Formulario de Nuevo gasto:** label **MONTO centrado**
 
 ---

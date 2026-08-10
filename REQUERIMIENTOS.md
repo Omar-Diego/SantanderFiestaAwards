@@ -24,11 +24,11 @@ Una aplicación Android que permite a **2 personas** (ej: tú y tu pareja, o tú
 
 | # | Funcionalidad | Descripción |
 |:-:|:--------------|:------------|
-| 1 | **Dashboard (Inicio)** | Balance del mes, disponible semanal (con rollover), últimos 3 gastos, acciones rápidas |
+| 1 | **Dashboard (Inicio)** | Balance del mes, disponible por fin de semana (con rollover), últimos 3 gastos, acciones rápidas |
 | 2 | **Registrar gasto** | Formulario: monto, descripción, fecha. Sin categorías ni notas |
 | 3 | **Lista de gastos (Actividad)** | Historial del mes con **búsqueda por descripción**, swipe para editar/eliminar |
 | 4 | **Editar y eliminar gastos** | Botones verde (Editar) y rojo (Eliminar) al deslizar un gasto |
-| 5 | **Presupuesto (Crédito)** | Meta mensual con día de corte; disponible semanal y por período |
+| 5 | **Presupuesto (Crédito)** | Meta mensual con día de corte; disponible por fin de semana y por período |
 | 6 | **Sincronización** | Tiempo real entre 2 dispositivos vía Firebase Firestore |
 
 ### Fase 2 — Post-MVP (descartada por el cliente)
@@ -106,8 +106,8 @@ Al no tener login de usuarios, la seguridad se maneja así:
 
 ### 5.1 Dashboard (Inicio)
 - **SALDO TOTAL** (gastado este mes) + **Disponible** (verde/rojo)
-- Acciones rápidas circulares: **Registrar · Alertas · Crédito**
-- **DISPONIBLE ESTA SEMANA** con rollover (semana actual / total, presupuesto semanal)
+- Acciones rápidas circulares: **Registrar · Simular · Pagos · Crédito**
+- **PUEDES GASTAR ESTE FIN DE SEMANA** con rollover (fin de semana actual / total, presupuesto por fin de semana — se divide entre los fines de semana reales del período, 4 o 5; el sobrante de períodos anteriores se suma completo al siguiente fin de semana)
 - **ACTIVIDAD** — últimos 3 gastos con avatar por comercio + "Ver todo"
 - Barra de navegación flotante (píldora): Inicio · Actividad · Alertas
 
@@ -130,7 +130,14 @@ Al no tener login de usuarios, la seguridad se maneja así:
 
 ### 5.5 Crédito (Presupuesto)
 - Formulario directo: monto por período + día de corte (1-31)
+- Campo opcional **Sobrante acumulado**: corrige el sobrante del período actual; al terminar el período se le suma lo no gastado y el cálculo continúa automático (corrección de una sola vez)
 - Se abre desde el Inicio (acción rápida)
+
+### 5.6 Pagos (Reparto Omar/Isa)
+- Se abre desde el Inicio (acción rápida circular **Pagos**)
+- Pestañas **Isa** (siempre primero) y **Omar**
+- **Regla fija:** Omar cubre los primeros **$1,000** de gasto de cada período; **Isa** cubre el restante (todo lo que supere los $1,000)
+- Los montos se calculan sobre el gasto acumulado del período actual (corte a corte)
 
 ---
 
@@ -195,6 +202,7 @@ npx expo run:android
 - [x] Editar y eliminar gastos
 - [x] Búsqueda en el historial
 - [x] Código de grupo seguro + compartir por WhatsApp (deep link)
+- [x] Pantalla Pagos con reparto Omar/Isa (primeros $1,000 para Omar, restante para Isa)
 - [ ] **Configurar App Check** (Play Integrity) en Firebase
 - [ ] Probar deep link `santander-fiesta://join/{código}` en 2 dispositivos
 - [ ] Build y prueba final en 2 dispositivos
